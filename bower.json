@@ -1,0 +1,17 @@
+{
+  "name": "grunt-project",
+  "version": "0.1.0",
+  "homepage": "https://github.com/elmarquez/grunt-project",
+  "authors": [
+    "Davis Marques <dmarques@unimelb.edu.au>"
+  ],
+  "description": "Skeleton NodeJS project and Grunt build tooling",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "vendor",
+    "test"
+  ]
+}

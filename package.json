@@ -1,0 +1,55 @@
+{
+  "name": "grunt-project",
+  "version": "0.1.0",
+  "description": "Skeleton NodeJS project and Grunt build tooling",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/elmarquez/grunt-project.git"
+  },
+  "author": "Davis Marques <davis.marques@unimelb.edu.au> (http://www.davismarques.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/elmarquez/grunt-project/issues"
+  },
+  "homepage": "https://github.com/elmarquez/grunt-project",
+  "devDependencies": {
+    "bower": "^1.4.1",
+    "grunt": "^0.4.5",
+    "grunt-available-tasks": "^0.5.4",
+    "grunt-bump": "^0.3.1",
+    "grunt-checkbranch": "^0.3.1",
+    "grunt-cli": "^0.1.13",
+    "grunt-contrib-clean": "^0.6.0",
+    "grunt-contrib-connect": "^0.7.1",
+    "grunt-contrib-copy": "^0.8.0",
+    "grunt-contrib-cssmin": "^0.9.0",
+    "grunt-contrib-jshint": "^0.11.2",
+    "grunt-contrib-uglify": "^0.9.1",
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-debug-task": "^0.1.7",
+    "grunt-git": "^0.3.5",
+    "grunt-protractor-runner": "^1.2.1",
+    "grunt-shell": "^1.1.2",
+    "grunt-template": "^0.2.3",
+    "grunt-xmlpoke": "^0.8.0",
+    "istanbul": "^0.3.16",
+    "jasmine-reporters": "^1.0.1",
+    "jasmine-spec-reporter": "^1.1.1",
+    "jshint-stylish": "^0.2.0",
+    "load-grunt-config": "^0.17.2",
+    "node-sass": "^3.2.0",
+    "nopt": "^3.0.1",
+    "object-merge": "^2.5.1",
+    "protractor": "^1.6.1",
+    "request": "^2.51.0",
+    "string": "^3.0.0",
+    "time-grunt": "^0.3.1"
+  }
+}
