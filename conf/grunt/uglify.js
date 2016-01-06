@@ -1,9 +1,11 @@
+'use strict';
+
 module.exports = {
   dist: {
-    cwd: '<%= app.dist %>',
+    cwd: 'dist',
     expand: true,
     files: {
-      '<%= app.dist %>/app/app.min.js': '<%= manifest.minify.js %>'
+      'dist/spatialhash.min.js': 'dist/spatialhash.js'
     }
   },
   options: {

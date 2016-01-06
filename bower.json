@@ -1,12 +1,13 @@
 {
-  "name": "grunt-project",
+  "name": "spatialhash",
   "version": "0.1.0",
-  "homepage": "https://github.com/elmarquez/grunt-project",
+  "description": "Fast 2D/3D indexing and search.",
   "authors": [
     "Davis Marques <dmarques@unimelb.edu.au>"
   ],
   "description": "Skeleton NodeJS project and Grunt build tooling",
   "license": "MIT",
+  "main": "dist/spatialhash.js",
   "ignore": [
     "**/.*",
     "node_modules",
