@@ -14,5 +14,8 @@
     "bower_components",
     "vendor",
     "test"
-  ]
+  ],
+  "devDependencies": {
+    "immutable": "^3.7.6"
+  }
 }
