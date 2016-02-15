@@ -1,15 +1,12 @@
 'use strict';
 
 module.exports = {
-  livereload: {
-    options: {
-      livereload: '<%= connect.options.livereload %>'
-    },
+  test: {
     files: [
       'conf/**/*',
       'src/**/*',
       'test/**/*'
     ],
-    tasks: ['compile']
+    tasks: ['test']
   }
 };

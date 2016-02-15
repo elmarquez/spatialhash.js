@@ -1,124 +1,118 @@
-/*
+'use strict';
 
- The MIT License (MIT)
-
- Copyright (c) 2014 Christer Bystrom
-
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
-
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.
-
- A spatial hash. For an explanation, see
-
- http://www.gamedev.net/page/resources/_/technical/game-programming/spatial-hashing-r2697
-
- For computational efficiency, the positions are bit-shifted n times. This means
- that they are divided by a factor of power of two. This factor is the
- only argument to the constructor.
-
+/**
+ * Spatial index.
+ * Objects are assumed to have an axis aligned bounding box.
+ * @param {Object} config Configuration
+ * @constructor
+ * @see http://www.gamedev.net/page/resources/_/technical/game-programming/spatial-hashing-r2697
  */
+function SpatialHash (config) {
+  config = config || {};
+  var self = this;
 
-(function(w) {
-  'use strict';
-
-  var DEFAULT_POWER_OF_TWO = 5;
-
-  function makeKeysFn(shift) {
-    return function(obj) {
-      var sx = obj.x >> shift,
-        sy = obj.y >> shift,
-        ex = (obj.x + obj.width) >> shift,
-        ey = (obj.y + obj.height) >> shift,
-        x, y, keys = [];
-      for(y=sy;y<=ey;y++) {
-        for(x=sx;x<=ex;x++) {
-          keys.push("" + x + ":" + y);
-        }
-      }
-      return keys;
-    };
-  }
-
-  /**
-   * @param {number} power_of_two - how many times the rects should be shifted
-   *                                when hashing
-   */
-  function SpatialHash(power_of_two) {
-    if (!power_of_two) {
-      power_of_two = DEFAULT_POWER_OF_TWO;
-    }
-    this.getKeys = makeKeysFn(power_of_two);
-    this.hash = {};
-    this.list = [];
-    this._lastTotalCleared = 0;
-  }
-
-  SpatialHash.prototype.clear = function() {
-    var key;
-    for (key in this.hash) {
-      if (this.hash[key].length === 0) {
-        delete this.hash[key];
-      } else {
-        this.hash[key].length = 0;
-      }
-    }
-    this.list.length = 0;
+  self.INDEXING_STRATEGY = {
+    BOUNDED_TWO: 'getBounded2DHashKey',
+    BOUNDED_THREE: 'getBounded3DHashKey',
+    UNBOUNDED_TWO: 'getUnbounded2DHashKey',
+    UNBOUNDED_THREE: 'getUnbounded3DHashKey'
   };
 
-  SpatialHash.prototype.getNumBuckets = function() {
-    var key, count = 0;
-    for (key in this.hash) {
-      if (this.hash.hasOwnProperty(key)) {
-        if (this.hash[key].length > 0) {
-          count++;
-        }
-      }
-    }
-    return count;
+  self.cellSize = 10;
+  self.conversionFactor = -1;
+  self.hashFn = null;
+  self.indexingStrategy = self.INDEXING_STRATEGY.UNBOUNDED_THREE;
+  self.max = 1000;
+  self.min = 0;
+  self.cells = {};
+  self.objects = [];
 
-  };
+  Object.keys(config).forEach(function (key) {
+    self[key] = config[key];
+  });
 
-  SpatialHash.prototype.insert = function(obj, rect) {
-    var keys = this.getKeys(rect || obj), key, i;
-    this.list.push(obj);
-    for (i=0;i<keys.length;i++) {
-      key = keys[i];
-      if (this.hash[key]) {
-        this.hash[key].push(obj);
-      } else {
-        this.hash[key] = [obj];
-      }
-    }
-  };
+  self.conversionFactor = 1 / self.cellSize;
+  self.indexingStrategy = self[self.indexingStrategy];
+  self.width = (self.max - self.min) / self.cellSize;
+}
 
-  SpatialHash.prototype.retrieve = function(obj, rect) {
-    var ret = [], keys, i, key;
-    if (!obj && !rect) {
-      return this.list;
-    }
-    keys = this.getKeys(rect || obj);
-    for (i=0;i<keys.length;i++) {
-      key = keys[i];
-      if (this.hash[key]) {
-        ret = ret.concat(this.hash[key]);
-      }
-    }
-    return ret;
-  };
+/**
+ * Add object to the spatial index.
+ * @param {String} id Object identifier
+ * @param {Object} aabb Axis aligned bounding box
+ */
+SpatialHash.prototype.addObject = function (id, aabb) {
+  var pos, x, y, width;
 
-  w.SpatialHash = SpatialHash;
-})(this);
+  // determine which cell to put the element into
+  //var cell = (Math.floor(x / this.cellSize)) + (Math.floor(y/this.cellSize)) * width;
+  var z = typeof pos.z === 'undefined' ? 0 : pos.z;
+  var cell = (x * this.conversionFactor) + (y * this.conversionFactor * width);
+  // initialize the cell array if it does not already exist
+  this.cells[cell] = this.cells.hasOwnProperty(cell) ? this.cells[cell] : [];
+
+};
+
+SpatialHash.prototype.addObjectVertices = function () {};
+
+/**
+ * Clear the index.
+ */
+SpatialHash.prototype.clear = function () {
+  this.cells = {};
+  this.objects = [];
+};
+
+/**
+ * Get 2D hash key.
+ * @param {Object|Array} pos Position
+ */
+SpatialHash.prototype.getBounded2DHashKey = function (pos) {};
+
+/**
+ * Get 3D hash key.
+ * @param {Object|Array} pos Position
+ */
+SpatialHash.prototype.getBounded3DHashKey = function (pos) {};
+
+/**
+ * Get 2D hash key.
+ * @param {Object|Array} pos Position
+ */
+SpatialHash.prototype.getUnbounded2DHashKey = function (pos) {};
+
+/**
+ * Get 3D hash key.
+ * @param {Object|Array} pos Position
+ * @returns {String} Hashed position key
+ */
+SpatialHash.prototype.getUnbounded3DHashKey = function (pos) {
+  var key = Math.floor(pos[0]) + Math.floor(pos[1]) + Math.floor(pos[2]);
+  return key;
+};
+
+/**
+ * Determine which buckets the AABB intersects.
+ * @param {Object} aabb Axis aligned bounding box with min, max positions.
+ */
+SpatialHash.prototype.intersects = function (aabb) {
+
+};
+
+SpatialHash.prototype.nearest = function (pos) {
+  // get the buckets nearest to the position
+  // get the list of objects nearest to the position
+};
+
+SpatialHash.prototype.remove = function (id, pos) {};
+
+/**
+ * Update the bounding grid size.
+ * @param {Number} x
+ * @param {Number} y
+ * @param {Number} z
+ */
+SpatialHash.prototype.setGridSize = function (x, y, z) {
+  this.width = x;
+  this.height = y;
+};
