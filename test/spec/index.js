@@ -2,7 +2,7 @@
 
 describe('spatial index', function () {
 
-  var box, config, index, intersects, point;
+  var box, config, count, index, intersects, point;
 
   beforeEach(function (done) {
     config = {};
@@ -32,14 +32,6 @@ describe('spatial index', function () {
     });
   });
 
-  describe('get intersects', function () {
-    it('should return a list of all intersecting cells for a given envelope', function (done) {
-      var intersects = [];
-      expect(intersects.length).toBe(0);
-      done();
-    });
-  });
-
   describe('insert', function () {
     describe('entity intersecting one cell', function () {
 
@@ -59,7 +51,7 @@ describe('spatial index', function () {
         index.insert('point', point);
         index.insert('box', box);
 
-        var count = Object.keys(index.cells).length;
+        count = Object.keys(index.cells).length;
         expect(count).toBe(1);
 
         Object.keys(index.cells).forEach(function (key) {
@@ -74,7 +66,7 @@ describe('spatial index', function () {
         index.insert('point', point);
         index.insert('box', box);
 
-        var count = Object.keys(index.objects).length;
+        count = Object.keys(index.objects).length;
         expect(count).toBe(2);
 
         Object.keys(index.objects).forEach(function (key) {
@@ -94,34 +86,28 @@ describe('spatial index', function () {
           min: {x:0, y:0, z:0},
           max: {x:11, y:1, z:1}
         };
-        point = {
-          min: {x:0, y:0, z:0},
-          max: {x:11, y:1, z:1}
-        };
         done();
       });
 
       it('should create two cell to entity map entries', function (done) {
-        index.insert('point', point);
         index.insert('box', box);
 
-        var count = Object.keys(index.cells).length;
+        count = Object.keys(index.cells).length;
         expect(count).toBe(2);
 
         Object.keys(index.cells).forEach(function (key) {
           count = index.cells[key].length;
-          expect(count).toBe(2);
+          expect(count).toBe(1);
         });
 
         done();
       });
 
       it('should create two entity to cell map entries', function (done) {
-        index.insert('point', point);
         index.insert('box', box);
 
-        var count = Object.keys(index.objects).length;
-        expect(count).toBe(2);
+        count = Object.keys(index.objects).length;
+        expect(count).toBe(1);
 
         Object.keys(index.objects).forEach(function (key) {
           count = index.objects[key].length;
@@ -140,39 +126,25 @@ describe('spatial index', function () {
           min: {x:0, y:0, z:0},
           max: {x:11, y:11, z:1}
         };
-        point = {
-          min: {x:0, y:0, z:0},
-          max: {x:11, y:11, z:1}
-        };
         done();
       });
 
       it('should create four cell to entity map entries', function (done) {
-        index.insert('point', point);
         index.insert('box', box);
 
-        var count = Object.keys(index.cells).length;
+        count = Object.keys(index.cells).length;
         expect(count).toBe(4);
 
-        Object.keys(index.cells).forEach(function (key) {
-          count = index.cells[key].length;
-          expect(count).toBe(2);
-        });
 
         done();
       });
 
       it('should create two entity to cell map entries', function (done) {
-        index.insert('point', point);
+        //index.insert('point', point);
         index.insert('box', box);
 
-        var count = Object.keys(index.objects).length;
-        expect(count).toBe(2);
-
-        Object.keys(index.objects).forEach(function (key) {
-          count = index.objects[key].length;
-          expect(count).toBe(4);
-        });
+        count = index.objects.box.length;
+        expect(count).toBe(4);
 
         done();
       });
@@ -186,34 +158,28 @@ describe('spatial index', function () {
           min: {x:0, y:0, z:0},
           max: {x:100, y:100, z:100}
         };
-        point = {
-          min: {x:0, y:0, z:0},
-          max: {x:100, y:100, z:100}
-        };
         done();
       });
 
       it('should create one hundred cell to entity map entries', function (done) {
-        index.insert('point', point);
         index.insert('box', box);
 
-        var count = Object.keys(index.cells).length;
+        count = Object.keys(index.cells).length;
         expect(count).toBe(1000);
 
         Object.keys(index.cells).forEach(function (key) {
           count = index.cells[key].length;
-          expect(count).toBe(2);
+          expect(count).toBe(1);
         });
 
         done();
       });
 
       it('should create one hundred entity to cell map entries', function (done) {
-        index.insert('point', point);
         index.insert('box', box);
 
-        var count = Object.keys(index.objects).length;
-        expect(count).toBe(2);
+        count = Object.keys(index.objects).length;
+        expect(count).toBe(1);
 
         Object.keys(index.objects).forEach(function (key) {
           count = index.objects[key].length;
@@ -223,6 +189,24 @@ describe('spatial index', function () {
         done();
       });
     });
+  });
+
+  describe('intersects', function () {
+
+    describe('AABB', function () {
+      it('should return a list of all intersecting cells for a given envelope', function (done) {
+        var intersects = [];
+        expect(intersects.length).toBe(0);
+        done();
+      });
+    });
+
+    describe('frustum', function () {
+      it('should return a list of all cells intersecting the camera frustum', function (done) {
+        done(false);
+      });
+    });
+
   });
 
   describe('remove', function () {

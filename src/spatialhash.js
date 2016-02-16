@@ -76,30 +76,12 @@ SpatialHash.prototype.getBoundedHashKey = function (pos) {
 };
 
 /**
- * Get the distance from P1 to P2.
- * @param {Array} p1 Point 1
- * @param {Array} p2 Point 2
- * @returns {Number}
- */
-SpatialHash.prototype.getDistance = function (p1, p2) {
-  // if two dimensions are provided per point, then add a third with value of
-  // zero so that don't have to do any more checks
-  p1[2] = p1.length === 2 ? 0 : p1[2];
-  p2[2] = p2.length === 2 ? 0 : p2[2];
-  return Math.sqrt(
-    Math.pow(p2[2] - p1[2], 2) +
-    Math.pow(p2[1] - p1[1], 2) +
-    Math.pow(p2[0] - p1[0], 2)
-  );
-};
-
-/**
  * Get a list of all intersecting cell positions for a specified envelope.
  * @param {THREE.Box3} aabb Axis aligned bounding box
  * @param {Number} size Cell size
  * @returns {Array} List of intersecting cell positions
  */
-SpatialHash.prototype.getIntersects = function (aabb, size) {
+SpatialHash.prototype.getCellsIntersectingAABB = function (aabb, size) {
   var i, j, k, points = [];
   var max = {
     x: Math.ceil(aabb.max.x/size) * size,
@@ -119,6 +101,39 @@ SpatialHash.prototype.getIntersects = function (aabb, size) {
     }
   }
   return points;
+};
+
+/**
+ * Get the list of cells that intersect the camera frustum.
+ * @param {THREE.Frustum} frustum Camera frustum
+ * @returns {Array}
+ */
+SpatialHash.prototype.getCellsIntersectingFrustum = function (frustum) {
+  var intersects = [], self = this;
+  Object.keys(self.envelopes).forEach(function (cell) {
+    if (frustum.intersectsObject(self.envelopes[cell])) {
+      intersects.push(cell);
+    }
+  });
+  return intersects;
+};
+
+/**
+ * Get the distance from P1 to P2.
+ * @param {Array} p1 Point 1
+ * @param {Array} p2 Point 2
+ * @returns {Number}
+ */
+SpatialHash.prototype.getDistance = function (p1, p2) {
+  // if two dimensions are provided per point, then add a third with value of
+  // zero so that don't have to do any more checks
+  p1[2] = p1.length === 2 ? 0 : p1[2];
+  p2[2] = p2.length === 2 ? 0 : p2[2];
+  return Math.sqrt(
+    Math.pow(p2[2] - p1[2], 2) +
+    Math.pow(p2[1] - p1[1], 2) +
+    Math.pow(p2[0] - p1[0], 2)
+  );
 };
 
 /**
@@ -142,7 +157,7 @@ SpatialHash.prototype.insert = function (id, aabb) {
   var key, self = this;
   // the cells intersecting the aabb
   var cells = self
-    .getIntersects(aabb, this.cellSize)
+    .getCellsIntersectingAABB(aabb, this.cellSize)
     .reduce(function (entries, p) {
       key = self.hashFn(p);
       entries[key] = id;

@@ -9,14 +9,14 @@ QUnit.test('get intersects', function( assert ) {
     min: {x:9, y:9, z:9},
     max: {x:11, y:11, z:11}
   };
-  intersects = index.getIntersects(box, 10);
+  intersects = index.getCellsIntersectingAABB(box, 10);
   assert.equal(intersects.length, 8, 'Passed');
 
   box = {
     min: {x:1, y:1, z:1},
     max: {x:100, y:100, z:100}
   };
-  intersects = index.getIntersects(box, 10);
+  intersects = index.getCellsIntersectingAABB(box, 10);
   assert.equal(intersects.length, 1000, 'Passed');
 });
 
