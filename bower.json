@@ -10,7 +10,7 @@
   "ignore": [
     ".bowerrc",
     ".jshint",
-    "Gruntfile.js",
+    "gruntfile.js",
     "package.json",
     "conf",
     "demo",
