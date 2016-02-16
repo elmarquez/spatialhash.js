@@ -95,21 +95,21 @@ SpatialHash.prototype.getDistance = function (p1, p2) {
 
 /**
  * Get a list of all intersecting cell positions for a specified envelope.
- * @param {THREE.Box3} box Envelope
+ * @param {THREE.Box3} aabb Axis aligned bounding box
  * @param {Number} size Cell size
  * @returns {Array} List of intersecting cell positions
  */
-SpatialHash.prototype.getIntersects = function (box, size) {
+SpatialHash.prototype.getIntersects = function (aabb, size) {
   var i, j, k, points = [];
   var max = {
-    x: Math.ceil(box.max.x/size) * size,
-    y: Math.ceil(box.max.y/size) * size,
-    z: box.max.z ? Math.ceil(box.max.z/size) * size : 0
+    x: Math.ceil(aabb.max.x/size) * size,
+    y: Math.ceil(aabb.max.y/size) * size,
+    z: aabb.max.z ? Math.ceil(aabb.max.z/size) * size : 0
   };
   var min = {
-    x: Math.floor(box.min.x/size) * size,
-    y: Math.floor(box.min.y/size) * size,
-    z: box.min.z ? Math.floor(box.min.z/size) * size : 0
+    x: Math.floor(aabb.min.x/size) * size,
+    y: Math.floor(aabb.min.y/size) * size,
+    z: aabb.min.z ? Math.floor(aabb.min.z/size) * size : 0
   };
   for (i = min.x; i < max.x; i += size) {
     for (j = min.y; j < max.y; j += size) {
@@ -140,32 +140,22 @@ SpatialHash.prototype.getUnboundedHashKey = function (pos) {
  */
 SpatialHash.prototype.insert = function (id, aabb) {
   var key, self = this;
-  // the points defining the envelope of the entity
-  var points = self.getIntersects(aabb, this.cellSize);
-  //var points = [
-  //  [aabb.min.x, aabb.min.y, aabb.min.z ? aabb.min.z : 0],
-  //  [aabb.max.x, aabb.min.y, aabb.min.z ? aabb.min.z : 0],
-  //  [aabb.max.x, aabb.max.y, aabb.min.z ? aabb.min.z : 0],
-  //  [aabb.min.x, aabb.max.y, aabb.min.z ? aabb.min.z : 0],
-  //  [aabb.min.x, aabb.min.y, aabb.max.z ? aabb.max.z : 0],
-  //  [aabb.max.x, aabb.min.y, aabb.max.z ? aabb.max.z : 0],
-  //  [aabb.max.x, aabb.max.y, aabb.max.z ? aabb.max.z : 0],
-  //  [aabb.min.x, aabb.max.y, aabb.max.z ? aabb.max.z : 0]
-  //];
-  // the cells occupied by the points
-  points = points.reduce(function (entries, p) {
-    key = self.hashFn(p);
-    entries[key] = id;
-    return entries;
-  }, {});
+  // the cells intersecting the aabb
+  var cells = self
+    .getIntersects(aabb, this.cellSize)
+    .reduce(function (entries, p) {
+      key = self.hashFn(p);
+      entries[key] = id;
+      return entries;
+    }, {});
   // add index entries
-  Object.keys(points).forEach(function (cell) {
-    // cell to entity entity id mapping
+  Object.keys(cells).forEach(function (cell) {
+    // add cell to entity entity id mapping
     if (!self.cells.hasOwnProperty(cell)) {
       self.cells[cell] = [];
     }
-    self.cells[cell].push(points[cell]);
-    // entity id to cell mapping
+    self.cells[cell].push(cells[cell]);
+    // add entity id to cell mapping
     if (!self.objects.hasOwnProperty(id)) {
       self.objects[id] = [];
     }
@@ -215,7 +205,19 @@ SpatialHash.prototype.nearest = function (pos) {
 
 /**
  * Remove object from the index.
- * @param obj
+ * @param {String} id Object identifier
  */
-SpatialHash.prototype.remove = function (obj) {
+SpatialHash.prototype.remove = function (id) {
+  var i, self = this;
+  // remove object from all cells
+  if (this.objects.hasOwnProperty(id)) {
+    this.objects[id].forEach(function (cell) {
+      i = self.cells[cell].indexOf(id);
+      if (i > -1) {
+        self.cells[cell].splice(i,1);
+      }
+    });
+  }
+  // remove object record
+  delete this.objects[id];
 };
