@@ -2,6 +2,6 @@
 
 module.exports = function (grunt) {
   grunt.registerTask('test', 'Execute unit and functional tests.', function () {
-    grunt.task.run(['compile','jasmine']);
+    grunt.task.run(['jasmine']);
   });
 };

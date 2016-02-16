@@ -1,0 +1,7 @@
+{
+  "framework": "jasmine",
+  "src_files": [
+    "dist/spatialhash.js",
+    "test/index.js"
+  ]
+}

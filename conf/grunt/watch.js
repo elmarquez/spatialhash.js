@@ -7,6 +7,6 @@ module.exports = {
       'src/**/*',
       'test/**/*'
     ],
-    tasks: ['test']
+    tasks: ['compile','test']
   }
 };

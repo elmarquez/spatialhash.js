@@ -1,118 +1,212 @@
 'use strict';
 
 /**
- * Spatial index.
- * Objects are assumed to have an axis aligned bounding box.
+ * Two and three dimensional spatial indexing support for three.js.
+ *
+ * - Objects are assumed to have an axis aligned bounding box.
+ * - cell size should be a power of 2 or 3
+ * - Search by camera direction, screen coordinates
+ * - Build index in a worker
+ *
+ * @todo normalize all points to 3 dimensions
+ *
+ * The first entry for each cell is a THREE.Box3 that defines the bounding
+ * envelope of the cell. The subsequent entries for each cell are
+ * identifiers for those entities intersecting the cell.
+ *
  * @param {Object} config Configuration
  * @constructor
  * @see http://www.gamedev.net/page/resources/_/technical/game-programming/spatial-hashing-r2697
  */
-function SpatialHash (config) {
+function SpatialHash(config) {
   config = config || {};
   var self = this;
 
   self.INDEXING_STRATEGY = {
-    BOUNDED_TWO: 'getBounded2DHashKey',
-    BOUNDED_THREE: 'getBounded3DHashKey',
-    UNBOUNDED_TWO: 'getUnbounded2DHashKey',
-    UNBOUNDED_THREE: 'getUnbounded3DHashKey'
+    BOUNDED: 'getBoundedHashKey',
+    UNBOUNDED: 'getUnboundedHashKey'
   };
 
+  self.cells = {};
   self.cellSize = 10;
   self.conversionFactor = -1;
+  self.envelopes = {};
   self.hashFn = null;
-  self.indexingStrategy = self.INDEXING_STRATEGY.UNBOUNDED_THREE;
+  self.indexingStrategy = self.INDEXING_STRATEGY.UNBOUNDED;
   self.max = 1000;
   self.min = 0;
-  self.cells = {};
-  self.objects = [];
+  self.objects = {};
 
   Object.keys(config).forEach(function (key) {
     self[key] = config[key];
   });
 
   self.conversionFactor = 1 / self.cellSize;
-  self.indexingStrategy = self[self.indexingStrategy];
+  self.hashFn = self[self.indexingStrategy];
   self.width = (self.max - self.min) / self.cellSize;
 }
-
-/**
- * Add object to the spatial index.
- * @param {String} id Object identifier
- * @param {Object} aabb Axis aligned bounding box
- */
-SpatialHash.prototype.addObject = function (id, aabb) {
-  var pos, x, y, width;
-
-  // determine which cell to put the element into
-  //var cell = (Math.floor(x / this.cellSize)) + (Math.floor(y/this.cellSize)) * width;
-  var z = typeof pos.z === 'undefined' ? 0 : pos.z;
-  var cell = (x * this.conversionFactor) + (y * this.conversionFactor * width);
-  // initialize the cell array if it does not already exist
-  this.cells[cell] = this.cells.hasOwnProperty(cell) ? this.cells[cell] : [];
-
-};
-
-SpatialHash.prototype.addObjectVertices = function () {};
 
 /**
  * Clear the index.
  */
 SpatialHash.prototype.clear = function () {
   this.cells = {};
-  this.objects = [];
+  this.objects = {};
 };
 
 /**
- * Get 2D hash key.
- * @param {Object|Array} pos Position
+ * Get bounded hash key. Position values must be greater than or equal to zero,
+ * greater than or equal to MIN, less than or equal to MAX. Position values
+ * should be normalized to three dimensions.
+ * @param {Array} pos Position
+ * @returns {String} Position hash key
  */
-SpatialHash.prototype.getBounded2DHashKey = function (pos) {};
+SpatialHash.prototype.getBoundedHashKey = function (pos) {
+  if (pos[0] < 0 || pos[1] < 0 || pos[2] < 0) {
+    throw new Error('Negative position value is not allowed');
+  } else if (pos[0] > this.max || pos[1] > this.max || pos[2] > this.max) {
+    throw new Error('Position is greater than MAX');
+  } else if (pos[0] < this.min || pos[1] < this.min || pos[2] < this.min) {
+    throw new Error('Position is less than MIN');
+  }
+  return Math.floor(pos[0] * this.conversionFactor) + ':' +
+    Math.floor(pos[1] * this.conversionFactor) + ':' +
+    Math.floor(pos[2] * this.conversionFactor);
+};
 
 /**
- * Get 3D hash key.
- * @param {Object|Array} pos Position
+ * Get the distance from P1 to P2.
+ * @param {Array} p1 Point 1
+ * @param {Array} p2 Point 2
+ * @returns {Number}
  */
-SpatialHash.prototype.getBounded3DHashKey = function (pos) {};
+SpatialHash.prototype.getDistance = function (p1, p2) {
+  // if two dimensions are provided per point, then add a third with value of
+  // zero so that don't have to do any more checks
+  p1[2] = p1.length === 2 ? 0 : p1[2];
+  p2[2] = p2.length === 2 ? 0 : p2[2];
+  return Math.sqrt(
+    Math.pow(p2[2] - p1[2], 2) +
+    Math.pow(p2[1] - p1[1], 2) +
+    Math.pow(p2[0] - p1[0], 2)
+  );
+};
 
 /**
- * Get 2D hash key.
- * @param {Object|Array} pos Position
+ * Get a list of all intersecting cell positions for a specified envelope.
+ * @param {THREE.Box3} box Envelope
+ * @param {Number} size Cell size
+ * @returns {Array} List of intersecting cell positions
  */
-SpatialHash.prototype.getUnbounded2DHashKey = function (pos) {};
+SpatialHash.prototype.getIntersects = function (box, size) {
+  var i, j, k, points = [];
+  var max = {x:box.max.x, y:box.max.y, z: box.max.z ? box.max.z : 0};
+  var min = {x:box.min.x, y:box.min.y, z: box.min.z ? box.min.z : 0};
+  for (i = min.x; i < max.x; i += size) {
+    for (j = min.y; j < max.y; j += size) {
+      for (k = min.z; k < max.z; k += size) {
+        points.push([Math.floor(i),Math.floor(j),Math.floor(k)]);
+      }
+    }
+  }
+  return points;
+};
 
 /**
- * Get 3D hash key.
+ * Get position hash key. Position values from -Infinity to Infinity are valid.
+ * Position values should be normalized to three dimensions.
  * @param {Object|Array} pos Position
  * @returns {String} Hashed position key
  */
-SpatialHash.prototype.getUnbounded3DHashKey = function (pos) {
-  var key = Math.floor(pos[0]) + Math.floor(pos[1]) + Math.floor(pos[2]);
-  return key;
+SpatialHash.prototype.getUnboundedHashKey = function (pos) {
+  return Math.floor(pos[0] * this.conversionFactor) + ':' +
+    Math.floor(pos[1] * this.conversionFactor) + ':' +
+    Math.floor(pos[2] * this.conversionFactor);
 };
 
 /**
- * Determine which buckets the AABB intersects.
- * @param {Object} aabb Axis aligned bounding box with min, max positions.
+ * Insert object into the index.
+ * @param {String} id Object identifier
+ * @param {THREE.Box2|THREE.Box3} aabb Axis aligned bounding box
+ */
+SpatialHash.prototype.insert = function (id, aabb) {
+  var key, self = this;
+  // the points defining the envelope of the entity
+  var points = self.getIntersects(aabb, this.cellSize);
+  //var points = [
+  //  [aabb.min.x, aabb.min.y, aabb.min.z ? aabb.min.z : 0],
+  //  [aabb.max.x, aabb.min.y, aabb.min.z ? aabb.min.z : 0],
+  //  [aabb.max.x, aabb.max.y, aabb.min.z ? aabb.min.z : 0],
+  //  [aabb.min.x, aabb.max.y, aabb.min.z ? aabb.min.z : 0],
+  //  [aabb.min.x, aabb.min.y, aabb.max.z ? aabb.max.z : 0],
+  //  [aabb.max.x, aabb.min.y, aabb.max.z ? aabb.max.z : 0],
+  //  [aabb.max.x, aabb.max.y, aabb.max.z ? aabb.max.z : 0],
+  //  [aabb.min.x, aabb.max.y, aabb.max.z ? aabb.max.z : 0]
+  //];
+  // the cells occupied by the points
+  points = points.reduce(function (entries, p) {
+    key = self.hashFn(p);
+    entries[key] = id;
+    return entries;
+  }, {});
+  // add index entries
+  Object.keys(points).forEach(function (cell) {
+    // cell to entity entity id mapping
+    if (!self.cells.hasOwnProperty(cell)) {
+      self.cells[cell] = [];
+    }
+    self.cells[cell].push(points[cell]);
+    // entity id to cell mapping
+    if (!self.objects.hasOwnProperty(id)) {
+      self.objects[id] = [];
+    }
+    self.objects[id].push(cell);
+  });
+};
+
+/**
+ * Determine which cells the AABB intersects.
+ * @param {THREE.Box3} aabb Axis aligned bounding box with min, max positions.
  */
 SpatialHash.prototype.intersects = function (aabb) {
 
 };
 
-SpatialHash.prototype.nearest = function (pos) {
-  // get the buckets nearest to the position
+/**
+ * Find those entities that intersect or are contained within the screen
+ * selection.
+ * @param {THREE.Frustum} frustum Camera frustum
+ * @param {THREE.Vector3} p1 Screen position 1
+ * @param {THREE.Vector3} p2 Screen position 2
+ * @returns {Array} Scene objects intersecting or contained within the selection rectangle.
+ */
+SpatialHash.prototype.intersectsViewSelection = function (frustum, p1, p2) {
+  // get the list of cells that intersect the frustum
+  // reduce the list of cells to those that intersect with p1 and p2
+};
+
+/**
+ *
+ * @param pos
+ * @param limit
+ */
+SpatialHash.prototype.near = function (pos, limit) {
+  // get the cells nearest to the position
   // get the list of objects nearest to the position
 };
 
-SpatialHash.prototype.remove = function (id, pos) {};
+/**
+ *
+ * @param pos
+ */
+SpatialHash.prototype.nearest = function (pos) {
+  // get the cells nearest to the position
+  // get the list of objects nearest to the position
+};
 
 /**
- * Update the bounding grid size.
- * @param {Number} x
- * @param {Number} y
- * @param {Number} z
+ * Remove object from the index.
+ * @param obj
  */
-SpatialHash.prototype.setGridSize = function (x, y, z) {
-  this.width = x;
-  this.height = y;
+SpatialHash.prototype.remove = function (obj) {
 };
