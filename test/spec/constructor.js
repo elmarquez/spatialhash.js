@@ -40,7 +40,22 @@ describe('constructor', function () {
   });
 
   it('assigns the specified position hash function', function (done) {
-    expect(index.indexingStrategy).toEqual(index.getUnbounded3DHashKey);
+    // default function
+    expect(index.hashFn).toEqual(index.getUnboundedHashKey);
+
+    config = {
+      indexingStrategy: 'getBoundedHashKey'
+    };
+    index = new SpatialHash(config);
+    expect(index.hashFn).toEqual(index.getBoundedHashKey);
+
+    config = {
+      myHashFunction: function () {},
+      indexingStrategy: 'myHashFunction'
+    };
+    index = new SpatialHash(config);
+    expect(index.hashFn).toEqual(index.myHashFunction);
+
     done();
   });
 

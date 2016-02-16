@@ -8,7 +8,8 @@
  * - Search by camera direction, screen coordinates
  * - Build index in a worker
  *
- * @todo normalize all points to 3 dimensions
+ * Positions will all be normalized to three dimensions. For two dimensional
+ * points, a Z value of 0 is defined.
  *
  * The first entry for each cell is a THREE.Box3 that defines the bounding
  * envelope of the cell. The subsequent entries for each cell are
@@ -100,12 +101,20 @@ SpatialHash.prototype.getDistance = function (p1, p2) {
  */
 SpatialHash.prototype.getIntersects = function (box, size) {
   var i, j, k, points = [];
-  var max = {x:box.max.x, y:box.max.y, z: box.max.z ? box.max.z : 0};
-  var min = {x:box.min.x, y:box.min.y, z: box.min.z ? box.min.z : 0};
+  var max = {
+    x: Math.ceil(box.max.x/size) * size,
+    y: Math.ceil(box.max.y/size) * size,
+    z: box.max.z ? Math.ceil(box.max.z/size) * size : 0
+  };
+  var min = {
+    x: Math.floor(box.min.x/size) * size,
+    y: Math.floor(box.min.y/size) * size,
+    z: box.min.z ? Math.floor(box.min.z/size) * size : 0
+  };
   for (i = min.x; i < max.x; i += size) {
     for (j = min.y; j < max.y; j += size) {
       for (k = min.z; k < max.z; k += size) {
-        points.push([Math.floor(i),Math.floor(j),Math.floor(k)]);
+        points.push([i,j,k]);
       }
     }
   }

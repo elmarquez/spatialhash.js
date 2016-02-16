@@ -5,11 +5,10 @@ module.exports = {
         src: 'dist/spatialhash.js',
         options: {
             specs: [
-              //'test/constructor.js',
-              //'test/hashing_functions.js',
-              //'test/index_2d.js',
-              'test/index.js'
-              //'test/search.js'
+              'test/spec/constructor.js',
+              'test/spec/hashing_functions.js',
+              'test/spec/index.js',
+              'test/spec/search.js'
             ],
             vendor: []
         }
