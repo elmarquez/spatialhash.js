@@ -125,8 +125,6 @@ SpatialHash.prototype.getCellsIntersectingFrustum = function (frustum) {
  * @returns {Number}
  */
 SpatialHash.prototype.getDistance = function (p1, p2) {
-  // if two dimensions are provided per point, then add a third with value of
-  // zero so that don't have to do any more checks
   p1[2] = p1.length === 2 ? 0 : p1[2];
   p2[2] = p2.length === 2 ? 0 : p2[2];
   return Math.sqrt(

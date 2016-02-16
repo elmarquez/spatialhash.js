@@ -1,7 +1,7 @@
 Spatial Hash
 ============
 
-Fast spatial indexing and search.
+Fast spatial indexing and search for three.js.
 
 
 Dependencies

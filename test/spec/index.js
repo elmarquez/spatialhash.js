@@ -203,6 +203,16 @@ describe('spatial index', function () {
 
     describe('frustum', function () {
       it('should return a list of all cells intersecting the camera frustum', function (done) {
+
+        var scene = new THREE.Scene();
+        var camera = new THREE.PerspectiveCamera();
+
+        var frustum = new THREE.Frustum();
+        var matrix = new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
+        frustum.setFromMatrix(matrix);
+
+
+        index.getCellsIntersectingFrustum(frustum);
         done(false);
       });
     });

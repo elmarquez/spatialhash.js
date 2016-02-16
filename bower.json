@@ -1,21 +1,29 @@
 {
   "name": "spatialhash",
   "version": "0.1.0",
-  "description": "Fast 2D/3D indexing and search.",
+  "description": "Fast spatial indexing and search for three.js",
   "authors": [
     "Davis Marques <dmarques@unimelb.edu.au>"
   ],
-  "description": "Skeleton NodeJS project and Grunt build tooling",
   "license": "MIT",
   "main": "dist/spatialhash.js",
   "ignore": [
-    "**/.*",
+    ".bowerrc",
+    ".jshint",
+    "Gruntfile.js",
+    "package.json",
+    "conf",
+    "demo",
     "node_modules",
-    "bower_components",
-    "vendor",
-    "test"
+    "src",
+    "test",
+    "vendor"
   ],
   "devDependencies": {
-    "immutable": "^3.7.6"
-  }
+    "immutable": "^3.7.6",
+    "three.js": "threejs#*"
+  },
+  "keywords": [
+    "threejs", "3D", "search", "spatial", "hash", "index"
+  ]
 }
