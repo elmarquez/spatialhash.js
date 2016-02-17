@@ -13,7 +13,7 @@
     ".gitattributes",
     ".gitignore",
     ".istanbul.yml",
-    ".jshint",
+    ".jshintrc",
     "gruntfile.js",
     "package.json",
     "conf",

@@ -12,7 +12,6 @@ NOTES
 buildNumber.properties
 npm-debug.log
 
-dist
 lib
 node_modules
 release
