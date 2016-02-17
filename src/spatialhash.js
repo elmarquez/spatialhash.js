@@ -158,7 +158,7 @@ SpatialHash.prototype.insert = function (id, aabb) {
     .getCellsIntersectingAABB(aabb, this.cellSize)
     .reduce(function (entries, p) {
       key = self.hashFn(p);
-      entries[key] = {envelope: new THREE.Box3(), id:id};
+      entries[key] = new THREE.Box3(p[0],p[1],p[2]);
       return entries;
     }, {});
   // add index entries
@@ -166,9 +166,9 @@ SpatialHash.prototype.insert = function (id, aabb) {
     // add cell to entity entity id mapping
     if (!self.cells.hasOwnProperty(cell)) {
       self.cells[cell] = [];
-      self.envelopes[cell] = cells[cell].envelope;
     }
-    self.cells[cell].push(cells[cell]);
+    self.cells[cell].push(id);
+    self.envelopes[cell] = cells[cell];
     // add entity id to cell mapping
     if (!self.objects.hasOwnProperty(id)) {
       self.objects[id] = [];
@@ -178,11 +178,18 @@ SpatialHash.prototype.insert = function (id, aabb) {
 };
 
 /**
- * Determine which cells the AABB intersects.
- * @param {THREE.Box3} aabb Axis aligned bounding box with min, max positions.
+ * Get the list of cells that intersect the AABB.
+ * @param {THREE.Box3} aabb Axis aligned bounding box.
+ * @returns {Array}
  */
 SpatialHash.prototype.intersects = function (aabb) {
-
+  var intersects = [], self = this;
+  Object.keys(self.envelopes).forEach(function (envelope) {
+    if (envelope.intersectsBox(aabb)) {
+      intersects.push(envelope);
+    }
+  });
+  return intersects;
 };
 
 /**
@@ -199,20 +206,27 @@ SpatialHash.prototype.intersectsViewSelection = function (frustum, p1, p2) {
 };
 
 /**
- *
- * @param pos
- * @param limit
+ * Find
+ * @param {Array} pos Position
+ * @param {Number} radius Search radius
+ * @param {Number} limit Maximum number of entities returned.
  */
-SpatialHash.prototype.near = function (pos, limit) {
+SpatialHash.prototype.near = function (pos, radius, limit) {
+  limit = limit || Infinity;
+  var searchVolume = new THREE.Box3().setFromCenterAndSize(pos, radius);
+
   // get the cells nearest to the position
   // get the list of objects nearest to the position
 };
 
 /**
- *
- * @param pos
+ * Find the nearest set of entities to the specified point. Return the list in
+ * order of proximity.
+ * @param {THREE.Vector3} pos Position to search from
+ * @param {Number} limit Limit of number of records to return
+ * @returns {Array}
  */
-SpatialHash.prototype.nearest = function (pos) {
+SpatialHash.prototype.nearest = function (pos, limit) {
   // get the cells nearest to the position
   // get the list of objects nearest to the position
 };
@@ -232,6 +246,7 @@ SpatialHash.prototype.remove = function (id) {
       }
     });
   }
-  // remove object record
+  // remove object envelope, record
+  delete this.envelopes[id];
   delete this.objects[id];
 };
