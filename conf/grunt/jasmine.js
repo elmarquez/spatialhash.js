@@ -10,7 +10,10 @@ module.exports = {
               'test/spec/index.js',
               'test/spec/search.js'
             ],
-            vendor: []
+            vendor: [
+              'vendor/immutable/dist/immutable.js',
+              'vendor/three.js/build/three.js'
+            ]
         }
     }
 };

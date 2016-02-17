@@ -33,6 +33,7 @@
     "QUnit": false,
     "SpatialHash": false,
     "spyOn": false,
+    "THREE": false,
     "xdescribe": false,
     "xit": false
   }

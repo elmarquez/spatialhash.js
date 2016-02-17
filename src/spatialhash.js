@@ -111,7 +111,7 @@ SpatialHash.prototype.getCellsIntersectingAABB = function (aabb, size) {
 SpatialHash.prototype.getCellsIntersectingFrustum = function (frustum) {
   var intersects = [], self = this;
   Object.keys(self.envelopes).forEach(function (cell) {
-    if (frustum.intersectsObject(self.envelopes[cell])) {
+    if (frustum.intersectsBox(self.envelopes[cell])) {
       intersects.push(cell);
     }
   });
@@ -158,7 +158,7 @@ SpatialHash.prototype.insert = function (id, aabb) {
     .getCellsIntersectingAABB(aabb, this.cellSize)
     .reduce(function (entries, p) {
       key = self.hashFn(p);
-      entries[key] = id;
+      entries[key] = {envelope: new THREE.Box3(), id:id};
       return entries;
     }, {});
   // add index entries
@@ -166,6 +166,7 @@ SpatialHash.prototype.insert = function (id, aabb) {
     // add cell to entity entity id mapping
     if (!self.cells.hasOwnProperty(cell)) {
       self.cells[cell] = [];
+      self.envelopes[cell] = cells[cell].envelope;
     }
     self.cells[cell].push(cells[cell]);
     // add entity id to cell mapping

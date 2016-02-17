@@ -193,26 +193,56 @@ describe('spatial index', function () {
 
   describe('intersects', function () {
 
+    beforeEach(function (done) {
+      box = {
+        min: {x:0, y:0, z:-15},
+        max: {x:5, y:5, z:-20}
+      };
+      point = {
+        min: {x:15, y:15, z:1},
+        max: {x:15, y:15, z:1}
+      };
+      done();
+    });
+
     describe('AABB', function () {
       it('should return a list of all intersecting cells for a given envelope', function (done) {
-        var intersects = [];
-        expect(intersects.length).toBe(0);
+        box = {
+          min: {x:0, y:0, z:0},
+          max: {x:1, y:1, z:1}
+        };
+        intersects = index.getCellsIntersectingAABB(box, index.cellSize);
+        expect(intersects.length).toBe(1);
+
+        box = {
+          min: {x:0, y:0, z:0},
+          max: {x:100, y:100, z:100}
+        };
+        intersects = index.getCellsIntersectingAABB(box, index.cellSize);
+        expect(intersects.length).toBe(1000);
+
         done();
       });
     });
 
     describe('frustum', function () {
-      it('should return a list of all cells intersecting the camera frustum', function (done) {
 
+      it('should return a list of all cells intersecting the camera frustum', function (done) {
         var scene = new THREE.Scene();
         var camera = new THREE.PerspectiveCamera();
+        scene.add(camera);
+        camera.updateMatrixWorld();
 
         var frustum = new THREE.Frustum();
-        var matrix = new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
+        var matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
         frustum.setFromMatrix(matrix);
 
+        index.insert('box', box);
+        index.insert('point', point);
 
-        index.getCellsIntersectingFrustum(frustum);
+        var cells = index.getCellsIntersectingFrustum(frustum);
+        expect(cells.length).toBe(1);
+
         done(false);
       });
     });
