@@ -9,6 +9,10 @@
   "main": "dist/spatialhash.js",
   "ignore": [
     ".bowerrc",
+    ".editorconfig",
+    ".gitattributes",
+    ".gitignore",
+    ".istanbul.yml",
     ".jshint",
     "gruntfile.js",
     "package.json",
