@@ -135,6 +135,31 @@ SpatialHash.prototype.getDistance = function (p1, p2) {
 };
 
 /**
+ * Get scene entities intersecting the camera frustum.
+ * @param {THREE.Frustum} frustum Camera frustum
+ * @returns {Array}
+ */
+SpatialHash.prototype.getEntitiesIntersectingFrustum = function (frustum) {
+  var intersects = [];
+  var cells = this.getCellsIntersectingFrustum(frustum);
+  cells.forEach(function (cell) {
+
+  });
+  return intersects;
+};
+
+/**
+ * Get scene entities intersecting the camera frustum.
+ * @param {THREE.Vector2} p1 Point 1
+ * @param {THREE.Vector2} p2 Point 2
+ * @returns {Array}
+ */
+SpatialHash.prototype.getEntitiesIntersectingScreenRectangle = function (p1, p2) {
+  var intersects = [];
+  return intersects;
+};
+
+/**
  * Get position hash key. Position values from -Infinity to Infinity are valid.
  * Position values should be normalized to three dimensions.
  * @param {Object|Array} pos Position
@@ -149,9 +174,11 @@ SpatialHash.prototype.getUnboundedHashKey = function (pos) {
 /**
  * Insert object into the index.
  * @param {String} id Object identifier
+ * @param {String} index Element index
  * @param {THREE.Box2|THREE.Box3} aabb Axis aligned bounding box
  */
-SpatialHash.prototype.insert = function (id, aabb) {
+SpatialHash.prototype.insert = function (id, index, aabb) {
+  // TODO need to store elemnt index somewhere
   var key, self = this;
   // the cells intersecting the aabb
   var cells = self
