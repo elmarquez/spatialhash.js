@@ -4,7 +4,8 @@ module.exports = {
   local: {
     options: {
       open: true,
-      base: '.'
+      base: '.',
+      port: 8081
     }
   }
 };

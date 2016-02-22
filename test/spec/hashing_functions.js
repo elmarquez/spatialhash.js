@@ -2,12 +2,39 @@
 
 describe('position hashing functions', function () {
 
-  var config, err, hash, index;
+  var config, env, err, hash, index, point;
 
   beforeEach(function (done) {
     config = {};
     index = new SpatialHash(config);
     done();
+  });
+
+  describe('get position envelope', function () {
+    it('returns the cell envelope', function (done) {
+
+      point = {x:1, y:1, z:1};
+      env = index.getPositionEnvelope(point);
+
+      expect(env.max.x).toEqual(10);
+      expect(env.max.y).toEqual(10);
+      expect(env.max.z).toEqual(10);
+      expect(env.min.x).toEqual(0);
+      expect(env.min.y).toEqual(0);
+      expect(env.min.z).toEqual(0);
+
+      //point = {x:10, y:10, z:10};
+      //env = index.getPositionEnvelope(point);
+      //
+      //expect(env.max.x).toEqual(20);
+      //expect(env.max.y).toEqual(20);
+      //expect(env.max.z).toEqual(20);
+      //expect(env.min.x).toEqual(10);
+      //expect(env.min.y).toEqual(10);
+      //expect(env.min.z).toEqual(10);
+
+      done();
+    });
   });
 
   describe('get bounded 3D hash key', function () {

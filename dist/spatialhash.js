@@ -32,7 +32,6 @@ function SpatialHash(config) {
   self.cellSize = 10;
   self.conversionFactor = -1;
   self.envelopes = {};
-  self.hashFn = null;
   self.indexingStrategy = self.INDEXING_STRATEGY.UNBOUNDED;
   self.max = 1000;
   self.min = 0;
@@ -43,7 +42,7 @@ function SpatialHash(config) {
   });
 
   self.conversionFactor = 1 / self.cellSize;
-  self.hashFn = self[self.indexingStrategy];
+  self.getPositionHash = self[self.indexingStrategy];
   self.width = (self.max - self.min) / self.cellSize;
 }
 
@@ -86,12 +85,12 @@ SpatialHash.prototype.getCellsIntersectingAABB = function (aabb, size) {
   var max = {
     x: Math.ceil(aabb.max.x/size) * size,
     y: Math.ceil(aabb.max.y/size) * size,
-    z: aabb.max.z ? Math.ceil(aabb.max.z/size) * size : 0
+    z: Math.ceil(aabb.max.z/size) * size
   };
   var min = {
     x: Math.floor(aabb.min.x/size) * size,
     y: Math.floor(aabb.min.y/size) * size,
-    z: aabb.min.z ? Math.floor(aabb.min.z/size) * size : 0
+    z: Math.floor(aabb.min.z/size) * size
   };
   for (i = min.x; i < max.x; i += size) {
     for (j = min.y; j < max.y; j += size) {
@@ -160,41 +159,61 @@ SpatialHash.prototype.getEntitiesIntersectingScreenRectangle = function (p1, p2)
 };
 
 /**
+ * Get position envelope.
+ * @param {Array} pos Position
+ * @returns {THREE.Box3}
+ */
+SpatialHash.prototype.getPositionEnvelope = function (pos) {
+  var x = Math.floor(pos[0] * this.conversionFactor) * this.cellSize;
+  var y = Math.floor(pos[1] * this.conversionFactor) * this.cellSize;
+  var z = Math.floor(pos[2] * this.conversionFactor) * this.cellSize;
+  var min = new THREE.Vector3(x, y, z);
+  x += this.cellSize;
+  y += this.cellSize;
+  z += this.cellSize;
+  var max = new THREE.Vector3(x, y, z);
+  return new THREE.Box3(min, max);
+};
+
+/**
  * Get position hash key. Position values from -Infinity to Infinity are valid.
  * Position values should be normalized to three dimensions.
  * @param {Object|Array} pos Position
  * @returns {String} Hashed position key
  */
 SpatialHash.prototype.getUnboundedHashKey = function (pos) {
-  return Math.floor(pos[0] * this.conversionFactor) + ':' +
-    Math.floor(pos[1] * this.conversionFactor) + ':' +
-    Math.floor(pos[2] * this.conversionFactor);
+  return (Math.floor(pos[0] * this.conversionFactor) * this.cellSize) + ':' +
+    (Math.floor(pos[1] * this.conversionFactor) * this.cellSize) + ':' +
+    (Math.floor(pos[2] * this.conversionFactor) * this.cellSize);
 };
 
 /**
  * Insert object into the index.
  * @param {String} id Object identifier
+ * @param {Number} index Element index
  * @param {THREE.Box2|THREE.Box3} aabb Axis aligned bounding box
+ * @param {Object} metadata Object metadata
  */
-SpatialHash.prototype.insert = function (id, aabb) {
-  // TODO need to store elemnt index somewhere
-  var key, self = this;
+SpatialHash.prototype.insert = function (id, index, aabb, metadata) {
+  // TODO need to store element index somewhere
+  var max, min, position, self = this;
   // the cells intersecting the aabb
   var cells = self
     .getCellsIntersectingAABB(aabb, this.cellSize)
-    .reduce(function (entries, p) {
-      key = self.hashFn(p);
-      entries[key] = new THREE.Box3(p[0],p[1],p[2]);
-      return entries;
+    .reduce(function (intersects, vertex) {
+      position = self.getPositionHash(vertex);
+      intersects[position] = self.getPositionEnvelope(vertex);
+      return intersects;
     }, {});
   // add index entries
   Object.keys(cells).forEach(function (cell) {
+    // record bounding envelope for the cell
+    self.envelopes[cell] = cells[cell];
     // add cell to entity entity id mapping
     if (!self.cells.hasOwnProperty(cell)) {
       self.cells[cell] = [];
     }
     self.cells[cell].push(id);
-    self.envelopes[cell] = cells[cell];
     // add entity id to cell mapping
     if (!self.objects.hasOwnProperty(id)) {
       self.objects[id] = [];
