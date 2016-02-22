@@ -228,6 +228,8 @@ describe('spatial index', function () {
     describe('frustum', function () {
 
       it('should return a list of all cells intersecting the camera frustum', function (done) {
+        done(false);
+
         var scene = new THREE.Scene();
         var camera = new THREE.PerspectiveCamera();
         scene.add(camera);
@@ -243,7 +245,7 @@ describe('spatial index', function () {
         var cells = index.getCellsIntersectingFrustum(frustum);
         expect(cells.length).toBe(1);
 
-        done(false);
+        // TODO need to ensure that it is returning the correct list of cells
       });
     });
 
@@ -256,8 +258,8 @@ describe('spatial index', function () {
         max: {x:100, y:100, z:100}
       };
       point = {
-        min: {x:0, y:0, z:0},
-        max: {x:100, y:100, z:100}
+        min: {x:1, y:1, z:1},
+        max: {x:1, y:1, z:1}
       };
       index.insert('point', point);
       index.insert('box', box);
@@ -265,9 +267,10 @@ describe('spatial index', function () {
       index.remove('point');
 
       expect(Object.keys(index.cells).length).toBe(1000);
+      expect(Object.keys(index.envelopes).length).toBe(1000);
       expect(Object.keys(index.objects).length).toBe(1);
 
-      done(false);
+      done();
     });
   });
 

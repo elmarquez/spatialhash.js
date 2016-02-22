@@ -112,7 +112,7 @@ SpatialHash.prototype.getCellsIntersectingFrustum = function (frustum) {
   var intersects = [], self = this;
   Object.keys(self.envelopes).forEach(function (cell) {
     if (frustum.intersectsBox(self.envelopes[cell])) {
-      intersects.push(cell);
+      intersects.push(self.cells[cell]);
     }
   });
   return intersects;
@@ -143,7 +143,7 @@ SpatialHash.prototype.getEntitiesIntersectingFrustum = function (frustum) {
   var intersects = [];
   var cells = this.getCellsIntersectingFrustum(frustum);
   cells.forEach(function (cell) {
-
+    intersects = intersects.concat(cell);
   });
   return intersects;
 };

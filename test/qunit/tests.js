@@ -1,6 +1,6 @@
 'use strict';
 
-QUnit.test('get intersects', function( assert ) {
+QUnit.test('get intersects', function (assert) {
   var config = {};
   var index = new SpatialHash(config);
   var box, intersects;
@@ -20,7 +20,7 @@ QUnit.test('get intersects', function( assert ) {
   assert.equal(intersects.length, 1000, 'Passed');
 });
 
-QUnit.test('should create multiple cell to entity map entries', function( assert ) {
+QUnit.test('should create multiple cell to entity map entries', function (assert) {
   var box, count;
   var config = {};
   var index = new SpatialHash(config);
@@ -45,7 +45,7 @@ QUnit.test('should create multiple cell to entity map entries', function( assert
 
 });
 
-QUnit.test('remove object', function( assert ) {
+QUnit.test('remove object', function (assert) {
   var box1, box2, count;
   var config = {};
   var index = new SpatialHash(config);
@@ -67,7 +67,7 @@ QUnit.test('remove object', function( assert ) {
   assert.equal(count,  1, 'Passed');
 });
 
-QUnit.test('find cells intersecting the camera frustum', function( assert ) {
+QUnit.test('find cells intersecting the camera frustum', function (assert) {
   var box1, box2;
   var index = new SpatialHash();
   box1 = {
