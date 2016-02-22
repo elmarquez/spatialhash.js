@@ -1,5 +1,4 @@
 .idea
-.sass-cache
 .tmp
 .DS_Store
 
@@ -9,12 +8,6 @@
 *.zip
 
 NOTES
-buildNumber.properties
-npm-debug.log
 
-lib
 node_modules
-release
-target
-tmp
 vendor
