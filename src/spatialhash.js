@@ -15,6 +15,19 @@
  * envelope of the cell. The subsequent entries for each cell are
  * identifiers for those entities intersecting the cell.
  *
+ * TODO:
+ *
+ * the objects map should work as
+ *
+ * {
+ *   uuid: {
+ *     index: {
+ *       cell: cellId,
+ *       position: [x,y,z]
+ *     }
+ *   }
+ * }
+ *
  * @param {Object} config Configuration
  * @constructor
  * @see http://www.gamedev.net/page/resources/_/technical/game-programming/spatial-hashing-r2697
@@ -108,13 +121,13 @@ SpatialHash.prototype.getCellsIntersectingAABB = function (aabb, size) {
  * @returns {Array}
  */
 SpatialHash.prototype.getCellsIntersectingFrustum = function (frustum) {
-  var intersects = [], self = this;
+  var intersects = {}, self = this;
   Object.keys(self.envelopes).forEach(function (cell) {
     if (frustum.intersectsBox(self.envelopes[cell])) {
-      intersects.push(self.cells[cell]);
+      intersects[cell] = 0;
     }
   });
-  return intersects;
+  return Object.keys(intersects);
 };
 
 /**
@@ -139,12 +152,18 @@ SpatialHash.prototype.getDistance = function (p1, p2) {
  * @returns {Array}
  */
 SpatialHash.prototype.getEntitiesIntersectingFrustum = function (frustum) {
-  var intersects = [];
-  var cells = this.getCellsIntersectingFrustum(frustum);
-  cells.forEach(function (cell) {
-    intersects = intersects.concat(cell);
-  });
-  return intersects;
+  var uuid;
+  var entities = this
+    .getCellsIntersectingFrustum(frustum)
+    // get a map of entities intersecting the cells
+    .reduce(function (intersects, cell) {
+      cell.forEach(function (id) {
+        uuid = id.split(',')[0];
+        intersects[uuid] = intersects.hasOwnProperty(uuid) ? intersects[uuid] + 1 : 0; // count of elements belonging to the entity for testing
+      });
+      return intersects;
+    }, {});
+  return Object.keys(entities);
 };
 
 /**
@@ -185,6 +204,24 @@ SpatialHash.prototype.getUnboundedHashKey = function (pos) {
   return (Math.floor(pos[0] * this.conversionFactor) * this.cellSize) + ':' +
     (Math.floor(pos[1] * this.conversionFactor) * this.cellSize) + ':' +
     (Math.floor(pos[2] * this.conversionFactor) * this.cellSize);
+};
+
+/**
+ * Get entity vertices intersecting the camera frustum.
+ * @param {THREE.Frustum} frustum Camera frustum
+ * @returns {Array}
+ */
+SpatialHash.prototype.getVerticesIntersectingFrustum = function (frustum) {
+  var entities = this
+    .getCellsIntersectingFrustum(frustum)
+    // get a map of entities intersecting the cells
+    .reduce(function (intersects, cell) {
+      cell.forEach(function (id) {
+        intersects[id] = 0;
+      });
+      return intersects;
+    }, {});
+  return Object.keys(entities);
 };
 
 /**
