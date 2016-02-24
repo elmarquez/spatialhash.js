@@ -179,12 +179,12 @@ SpatialHash.prototype.getDistance = function (p1, p2) {
  * @returns {Array} List of scene entities
  */
 SpatialHash.prototype.getEntitiesIntersectingFrustum = function (frustum) {
-  var uuid;
+  var self = this, uuid;
   var entities = this
     .getCellsIntersectingFrustum(frustum)
     // get a map of entities intersecting the cells
     .reduce(function (intersects, cell) {
-      cell.forEach(function (id) {
+      self.cells[cell].forEach(function (id) {
         uuid = id.split(',')[0];
         intersects[uuid] = intersects.hasOwnProperty(uuid) ? intersects[uuid] + 1 : 0; // count of elements belonging to the entity for testing
       });
