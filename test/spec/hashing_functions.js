@@ -13,8 +13,10 @@ describe('position hashing functions', function () {
   describe('get position envelope', function () {
     it('returns the cell envelope', function (done) {
 
-      point = {x:1, y:1, z:1};
+      point = new THREE.Vector3(1, 1, 1);
       env = index.getPositionEnvelope(point);
+
+      expect(index.cellSize).toEqual(10);
 
       expect(env.max.x).toEqual(10);
       expect(env.max.y).toEqual(10);
@@ -23,15 +25,15 @@ describe('position hashing functions', function () {
       expect(env.min.y).toEqual(0);
       expect(env.min.z).toEqual(0);
 
-      //point = {x:10, y:10, z:10};
-      //env = index.getPositionEnvelope(point);
-      //
-      //expect(env.max.x).toEqual(20);
-      //expect(env.max.y).toEqual(20);
-      //expect(env.max.z).toEqual(20);
-      //expect(env.min.x).toEqual(10);
-      //expect(env.min.y).toEqual(10);
-      //expect(env.min.z).toEqual(10);
+      point = new THREE.Vector3(10, 10, 10);
+      env = index.getPositionEnvelope(point);
+
+      expect(env.max.x).toEqual(20);
+      expect(env.max.y).toEqual(20);
+      expect(env.max.z).toEqual(20);
+      expect(env.min.x).toEqual(10);
+      expect(env.min.y).toEqual(10);
+      expect(env.min.z).toEqual(10);
 
       done();
     });
@@ -45,16 +47,16 @@ describe('position hashing functions', function () {
     });
 
     it('generates a hash key corresponding to the 2D bucket', function (done) {
-      hash = index.getBoundedHashKey([0,0,0]);
+      hash = index.getBoundedHashKey(new THREE.Vector3(0,0,0));
       expect(hash).toEqual('0:0:0');
 
-      hash = index.getBoundedHashKey([1,1,1]);
+      hash = index.getBoundedHashKey(new THREE.Vector3(1,1,1));
       expect(hash).toEqual('0:0:0');
 
-      hash = index.getBoundedHashKey([500.5,500.10,500.75]);
+      hash = index.getBoundedHashKey(new THREE.Vector3(500.5,500.10,500.75));
       expect(hash).toEqual('50:50:50');
 
-      hash = index.getBoundedHashKey([1000,1000,1000]);
+      hash = index.getBoundedHashKey(new THREE.Vector3(1000,1000,1000));
       expect(hash).toEqual('100:100:100');
       done(false);
     });
@@ -108,29 +110,30 @@ describe('position hashing functions', function () {
       done();
     });
 
-    it('generates a hash key corresponding to the 2D bucket', function (done) {
-      hash = index.getUnboundedHashKey([-100,-100,-100]);
+    it('generates a hash key corresponding to the 3D bucket', function (done) {
+      hash = index.getUnboundedHashKey(new THREE.Vector3(-100,-100,-100));
       expect(hash).toEqual('-10:-10:-10');
 
-      hash = index.getUnboundedHashKey([-1,-1,-1]);
+      hash = index.getUnboundedHashKey(new THREE.Vector3(-1,-1,-1));
       expect(hash).toEqual('-1:-1:-1');
 
-      hash = index.getUnboundedHashKey([1,1,1]);
+      hash = index.getUnboundedHashKey(new THREE.Vector3(1,1,1));
       expect(hash).toEqual('0:0:0');
 
-      hash = index.getUnboundedHashKey([500.5,500.10,500.75]);
+      hash = index.getUnboundedHashKey(new THREE.Vector3(500.5,500.10,500.75));
       expect(hash).toEqual('50:50:50');
 
-      hash = index.getUnboundedHashKey([1000,1000,1000]);
+      hash = index.getUnboundedHashKey(new THREE.Vector3(1000,1000,1000));
       expect(hash).toEqual('100:100:100');
-      done(false);
+
+      done();
     });
 
     it('accepts positive and negative coordinate values', function (done) {
-      hash = index.getUnboundedHashKey([1,1,1]);
+      hash = index.getUnboundedHashKey(new THREE.Vector3(1,1,1));
       expect(hash).toBeDefined();
 
-      hash = index.getUnboundedHashKey([-1,-1,-1]);
+      hash = index.getUnboundedHashKey(new THREE.Vector3(-1,-1,-1));
       expect(hash).toBeDefined();
 
       done();

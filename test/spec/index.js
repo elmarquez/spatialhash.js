@@ -12,17 +12,14 @@ describe('spatial index', function () {
 
   describe('clear', function () {
     it('should remove all entities from the index', function (done) {
-      box = {
-        min: {x:0, y:0, z:0},
-        max: {x:100, y:100, z:100}
-      };
-      point = {
-        min: {x:0, y:0, z:0},
-        max: {x:0, y:0, z:0}
-      };
-      index.insert('point', point);
-      index.insert('box', box);
-
+      box = new THREE.Box3(
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(100, 100, 100));
+      point = new THREE.Box3(
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, 0, 0));
+      index.insert('point', 1, point, {});
+      index.insert('box', -1, box, {});
       index.clear();
 
       expect(Object.keys(index.cells).length).toBe(0);
@@ -36,20 +33,14 @@ describe('spatial index', function () {
     describe('entity intersecting one cell', function () {
 
       beforeEach(function (done) {
-        box = {
-          min: {x:1, y:1, z:1},
-          max: {x:2, y:2, z:2}
-        };
-        point = {
-          min: {x:1, y:1, z:1},
-          max: {x:1, y:1, z:1}
-        };
+        box = new THREE.Box3(new THREE.Vector3(1,1,1), new THREE.Vector3(2,2,2));
+        point = new THREE.Box3(new THREE.Vector3(1,1,1), new THREE.Vector3(1,1,1));
         done();
       });
 
       it('should create one cell to entity map entry', function (done) {
-        index.insert('point', point);
-        index.insert('box', box);
+        index.insert('point', 1, point);
+        index.insert('box', -1, box);
 
         count = Object.keys(index.cells).length;
         expect(count).toBe(1);
@@ -63,8 +54,8 @@ describe('spatial index', function () {
       });
 
       it('should create two entity to cell map entries', function (done) {
-        index.insert('point', point);
-        index.insert('box', box);
+        index.insert('point', 1, point);
+        index.insert('box', -1, box);
 
         count = Object.keys(index.objects).length;
         expect(count).toBe(2);
@@ -82,15 +73,12 @@ describe('spatial index', function () {
     describe('entity intersecting two cells', function () {
 
       beforeEach(function (done) {
-        box = {
-          min: {x:0, y:0, z:0},
-          max: {x:11, y:1, z:1}
-        };
+        box = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(11,1,1));
         done();
       });
 
       it('should create two cell to entity map entries', function (done) {
-        index.insert('box', box);
+        index.insert('box', -1, box);
 
         count = Object.keys(index.cells).length;
         expect(count).toBe(2);
@@ -104,7 +92,7 @@ describe('spatial index', function () {
       });
 
       it('should create two entity to cell map entries', function (done) {
-        index.insert('box', box);
+        index.insert('box', -1, box);
 
         count = Object.keys(index.objects).length;
         expect(count).toBe(1);
@@ -122,30 +110,21 @@ describe('spatial index', function () {
     describe('entity intersecting four cells', function () {
 
       beforeEach(function (done) {
-        box = {
-          min: {x:0, y:0, z:0},
-          max: {x:11, y:11, z:1}
-        };
+        box = new THREE.Box3(new THREE.Vector3(1,1,1), new THREE.Vector3(11,11,1));
         done();
       });
 
       it('should create four cell to entity map entries', function (done) {
-        index.insert('box', box);
-
+        index.insert('box', -1, box);
         count = Object.keys(index.cells).length;
         expect(count).toBe(4);
-
-
         done();
       });
 
       it('should create two entity to cell map entries', function (done) {
-        //index.insert('point', point);
-        index.insert('box', box);
-
+        index.insert('box', -1, box);
         count = index.objects.box.length;
         expect(count).toBe(4);
-
         done();
       });
 
@@ -154,15 +133,12 @@ describe('spatial index', function () {
     describe('entity intersecting more than four cells', function () {
 
       beforeEach(function (done) {
-        box = {
-          min: {x:0, y:0, z:0},
-          max: {x:100, y:100, z:100}
-        };
+        box = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(100,100,100));
         done();
       });
 
       it('should create one hundred cell to entity map entries', function (done) {
-        index.insert('box', box);
+        index.insert('box', -1, box);
 
         count = Object.keys(index.cells).length;
         expect(count).toBe(1000);
@@ -176,7 +152,7 @@ describe('spatial index', function () {
       });
 
       it('should create one hundred entity to cell map entries', function (done) {
-        index.insert('box', box);
+        index.insert('box', -1, box);
 
         count = Object.keys(index.objects).length;
         expect(count).toBe(1);
@@ -207,18 +183,14 @@ describe('spatial index', function () {
 
     describe('AABB', function () {
       it('should return a list of all intersecting cells for a given envelope', function (done) {
-        box = {
-          min: {x:0, y:0, z:0},
-          max: {x:1, y:1, z:1}
-        };
-        intersects = index.getCellsIntersectingAABB(box, index.cellSize);
+        box = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(1,1,1));
+        index.insert('box', -1, box);
+        intersects = index.getCellsIntersectingAABB(box);
         expect(intersects.length).toBe(1);
 
-        box = {
-          min: {x:0, y:0, z:0},
-          max: {x:100, y:100, z:100}
-        };
-        intersects = index.getCellsIntersectingAABB(box, index.cellSize);
+        box = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(99,99,99));
+        index.insert('box', -1, box);
+        intersects = index.getCellsIntersectingAABB(box);
         expect(intersects.length).toBe(1000);
 
         done();
@@ -228,7 +200,11 @@ describe('spatial index', function () {
     describe('frustum', function () {
 
       it('should return a list of all cells intersecting the camera frustum', function (done) {
-        done(false);
+        var index = new SpatialHash();
+        var box1 = new THREE.Box3(new THREE.Vector3(3,3,3), new THREE.Vector3(4,4,4));
+        var box2 = new THREE.Box3(new THREE.Vector3(-3,-3,-3), new THREE.Vector3(-4,-4,-4));
+        index.insert('box1', -1, box1);
+        index.insert('box2', -1, box2);
 
         var scene = new THREE.Scene();
         var camera = new THREE.PerspectiveCamera();
@@ -239,13 +215,12 @@ describe('spatial index', function () {
         var matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
         frustum.setFromMatrix(matrix);
 
-        index.insert('box', box);
-        index.insert('point', point);
-
         var cells = index.getCellsIntersectingFrustum(frustum);
         expect(cells.length).toBe(1);
 
         // TODO need to ensure that it is returning the correct list of cells
+
+        done();
       });
     });
 
@@ -253,17 +228,11 @@ describe('spatial index', function () {
 
   describe('remove', function () {
     it('should remove an entity by id value', function (done) {
-      box = {
-        min: {x:0, y:0, z:0},
-        max: {x:100, y:100, z:100}
-      };
-      point = {
-        min: {x:1, y:1, z:1},
-        max: {x:1, y:1, z:1}
-      };
-      index.insert('point', point);
-      index.insert('box', box);
+      box = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(99,99,99));
+      point = new THREE.Box3(new THREE.Vector3(1,1,1), new THREE.Vector3(1,1,1));
 
+      index.insert('point', 1, point);
+      index.insert('box', -1, box);
       index.remove('point');
 
       expect(Object.keys(index.cells).length).toBe(1000);

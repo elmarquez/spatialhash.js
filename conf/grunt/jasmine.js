@@ -12,7 +12,8 @@ module.exports = {
             ],
             vendor: [
               'vendor/immutable/dist/immutable.js',
-              'vendor/three.js/three.js'
+              'vendor/three.js/three.js',
+              'vendor/three.js/build/three.js'
             ]
         }
     }

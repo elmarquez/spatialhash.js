@@ -1,22 +1,103 @@
 'use strict';
 
+QUnit.test('should return a list of all intersecting cells for a given envelope', function (assert) {
+  var index = new SpatialHash(), intersects;
+  var box = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(1,1,1));
+  index.insert('box', -1, box);
+
+  intersects = index.getCellsIntersectingAABB(box);
+  assert.equal(intersects.length, 1, 'Passed');
+
+  index = new SpatialHash();
+  box = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(99,99,99));
+  index.insert('box', -1, box);
+  intersects = index.getCellsIntersectingAABB(box);
+  assert.equal(intersects.length, 1000, 'Passed');
+});
+
+QUnit.test('should create four cell to entity map entries', function (assert) {
+  var index = new SpatialHash();
+  var box = new THREE.Box3(new THREE.Vector3(1,1,1), new THREE.Vector3(11,11,1));
+  index.insert('box', -1, box);
+
+  var count = Object.keys(index.cells).length;
+  assert.equal(count, 4, 'Passed');
+});
+
+QUnit.test('should create two entity to cell map entries', function (assert) {
+  var index = new SpatialHash();
+  var box = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(11,11,1));
+  index.insert('box', -1, box);
+
+  var count = index.objects.box.length;
+  assert.equal(count, 4, 'Passed');
+});
+
+QUnit.test('generates a hash key corresponding to the 3D bucket', function (assert) {
+  var index = new SpatialHash();
+
+  var hash = index.getUnboundedHashKey(new THREE.Vector3(-100,-100,-100));
+  assert.equal(hash, '-10:-10:-10', 'Passed');
+
+  hash = index.getUnboundedHashKey(new THREE.Vector3(-1,-1,-1));
+  assert.equal(hash, '-1:-1:-1', 'Passed');
+
+  hash = index.getUnboundedHashKey(new THREE.Vector3(1,1,1));
+  assert.equal(hash, '0:0:0', 'Passed');
+
+  hash = index.getUnboundedHashKey(new THREE.Vector3(500.5,500.10,500.75));
+  assert.equal(hash, '50:50:50', 'Passed');
+
+  hash = index.getUnboundedHashKey(new THREE.Vector3(1000,1000,1000));
+  assert.equal(hash, '100:100:100', 'Passed');
+});
+
+QUnit.test('get cell envelope', function (assert) {
+  var config = {};
+  var index = new SpatialHash(config);
+
+  var point = new THREE.Vector3(1, 1, 1);
+  var env = index.getPositionEnvelope(point);
+
+  assert.equal(index.cellSize, 10, 'Passed');
+
+  assert.equal(env.max.x, 10, 'Passed');
+  assert.equal(env.max.y, 10, 'Passed');
+  assert.equal(env.max.z, 10, 'Passed');
+  assert.equal(env.min.x, 0, 'Passed');
+  assert.equal(env.min.y, 0, 'Passed');
+  assert.equal(env.min.z, 0, 'Passed');
+
+  point = new THREE.Vector3(10, 10, 10);
+  env = index.getPositionEnvelope(point);
+
+  assert.equal(env.max.x, 20, 'Passed');
+  assert.equal(env.max.y, 20, 'Passed');
+  assert.equal(env.max.z, 20, 'Passed');
+  assert.equal(env.min.x, 10, 'Passed');
+  assert.equal(env.min.y, 10, 'Passed');
+  assert.equal(env.min.z, 10, 'Passed');
+});
+
 QUnit.test('get intersects', function (assert) {
   var config = {};
   var index = new SpatialHash(config);
-  var box, intersects;
+  var box1, box2, intersects, p1, p2, p3, p4;
 
-  box = {
-    min: {x:9, y:9, z:9},
-    max: {x:11, y:11, z:11}
-  };
-  intersects = index.getCellsIntersectingAABB(box, 10);
+  p1 = new THREE.Vector3(9,9,9);
+  p2 = new THREE.Vector3(11,11,11);
+  box1 = new THREE.Box3(p1, p2);
+  index.insert('box1', -1, box1, {});
+
+  intersects = index.getCellsIntersectingAABB(box1);
   assert.equal(intersects.length, 8, 'Passed');
 
-  box = {
-    min: {x:1, y:1, z:1},
-    max: {x:100, y:100, z:100}
-  };
-  intersects = index.getCellsIntersectingAABB(box, 10);
+  p3 = new THREE.Vector3(1,1,1);
+  p4 = new THREE.Vector3(100,100,100);
+  box2 = new THREE.Box3(p3, p4);
+  index.insert('box2', -1, box2, {});
+
+  intersects = index.getCellsIntersectingAABB(box2);
   assert.equal(intersects.length, 1000, 'Passed');
 });
 
@@ -68,16 +149,9 @@ QUnit.test('remove object', function (assert) {
 });
 
 QUnit.test('find cells intersecting the camera frustum', function (assert) {
-  var box1, box2;
   var index = new SpatialHash();
-  box1 = {
-    min: {x:3, y:3, z:3},
-    max: {x:4, y:4, z:4}
-  };
-  box2 = {
-    max: {x:-3, y:-3, z:-3},
-    min: {x:-4, y:-4, z:-4}
-  };
+  var box1 = new THREE.Box3(new THREE.Vector3(3,3,3), new THREE.Vector3(4,4,4));
+  var box2 = new THREE.Box3(new THREE.Vector3(-3,-3,-3), new THREE.Vector3(-4,-4,-4));
   index.insert('box1', -1, box1);
   index.insert('box2', -1, box2);
 
@@ -97,7 +171,7 @@ QUnit.test('find cells intersecting the camera frustum', function (assert) {
 QUnit.test('returns the cell envelope', function (assert) {
   var index = new SpatialHash();
 
-  var point = [1, 1, 1];
+  var point = new THREE.Vector3(1, 1, 1);
   var env = index.getPositionEnvelope(point);
 
   assert.equal(env.min.x, 0, 'Passed');
@@ -107,7 +181,7 @@ QUnit.test('returns the cell envelope', function (assert) {
   assert.equal(env.max.y, 10, 'Passed');
   assert.equal(env.max.z, 10, 'Passed');
 
-  point = [10, 10, 10];
+  point = new THREE.Vector3(10, 10, 10);
   env = index.getPositionEnvelope(point);
 
   assert.equal(env.min.x, 10, 'Passed');
@@ -117,7 +191,7 @@ QUnit.test('returns the cell envelope', function (assert) {
   assert.equal(env.max.y, 20, 'Passed');
   assert.equal(env.max.z, 20, 'Passed');
 
-  point = [15, 15, 15];
+  point = new THREE.Vector3(15, 15, 15);
   env = index.getPositionEnvelope(point);
 
   assert.equal(env.min.x, 10, 'Passed');
@@ -127,7 +201,7 @@ QUnit.test('returns the cell envelope', function (assert) {
   assert.equal(env.max.y, 20, 'Passed');
   assert.equal(env.max.z, 20, 'Passed');
 
-  point = [-1, -1, -1];
+  point = new THREE.Vector3(-1, -1, -1);
   env = index.getPositionEnvelope(point);
 
   assert.equal(env.min.x, -10, 'Passed');

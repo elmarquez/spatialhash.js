@@ -15,9 +15,8 @@
  * envelope of the cell. The subsequent entries for each cell are
  * identifiers for those entities intersecting the cell.
  *
- * TODO:
- *
- * the objects map should work as
+ * @todo implement heirarchical spatial hashing
+ * @todo revise object to cell map as follows:
  *
  * {
  *   uuid: {
@@ -68,47 +67,38 @@ SpatialHash.prototype.clear = function () {
 };
 
 /**
- * Get bounded hash key. Position values must be greater than or equal to zero,
- * greater than or equal to MIN, less than or equal to MAX. Position values
- * should be normalized to three dimensions.
- * @param {Array} pos Position
- * @returns {String} Position hash key
+ * Get a list of hash keys for the cells occupied by the AABB.
+ * @param {THREE.Box3} aabb Axis aligned bounding box
+ * @returns {Array} List of cell keys
  */
-SpatialHash.prototype.getBoundedHashKey = function (pos) {
-  if (pos[0] < 0 || pos[1] < 0 || pos[2] < 0) {
-    throw new Error('Negative position value is not allowed');
-  } else if (pos[0] > this.max || pos[1] > this.max || pos[2] > this.max) {
-    throw new Error('Position is greater than MAX');
-  } else if (pos[0] < this.min || pos[1] < this.min || pos[2] < this.min) {
-    throw new Error('Position is less than MIN');
-  }
-  return Math.floor(pos[0] * this.conversionFactor) + ':' +
-    Math.floor(pos[1] * this.conversionFactor) + ':' +
-    Math.floor(pos[2] * this.conversionFactor);
+SpatialHash.prototype.getAABBCellKeys = function (aabb) {
+  var self = this;
+  return this.getAABBCells(aabb).map(function (item) {
+    return self.getPositionHash(item);
+  });
 };
 
 /**
  * Get a list of all intersecting cell positions for a specified envelope.
  * @param {THREE.Box3} aabb Axis aligned bounding box
- * @param {Number} size Cell size
  * @returns {Array} List of intersecting cell positions
  */
-SpatialHash.prototype.getCellsIntersectingAABB = function (aabb, size) {
+SpatialHash.prototype.getAABBCells = function (aabb) {
   var i, j, k, points = [];
   var max = {
-    x: Math.ceil(aabb.max.x/size) * size,
-    y: Math.ceil(aabb.max.y/size) * size,
-    z: Math.ceil(aabb.max.z/size) * size
+    x: Math.ceil(aabb.max.x/this.cellSize) * this.cellSize,
+    y: Math.ceil(aabb.max.y/this.cellSize) * this.cellSize,
+    z: Math.ceil(aabb.max.z/this.cellSize) * this.cellSize
   };
   var min = {
-    x: Math.floor(aabb.min.x/size) * size,
-    y: Math.floor(aabb.min.y/size) * size,
-    z: Math.floor(aabb.min.z/size) * size
+    x: Math.floor(aabb.min.x/this.cellSize) * this.cellSize,
+    y: Math.floor(aabb.min.y/this.cellSize) * this.cellSize,
+    z: Math.floor(aabb.min.z/this.cellSize) * this.cellSize
   };
-  for (i = min.x; i < max.x; i += size) {
-    for (j = min.y; j < max.y; j += size) {
-      for (k = min.z; k < max.z; k += size) {
-        points.push([i,j,k]);
+  for (i = min.x; i < max.x; i += this.cellSize) {
+    for (j = min.y; j < max.y; j += this.cellSize) {
+      for (k = min.z; k < max.z; k += this.cellSize) {
+        points.push(new THREE.Vector3(i,j,k));
       }
     }
   }
@@ -116,9 +106,42 @@ SpatialHash.prototype.getCellsIntersectingAABB = function (aabb, size) {
 };
 
 /**
+ * Get bounded hash key. Position values must be greater than or equal to zero,
+ * greater than or equal to MIN, less than or equal to MAX. Position values
+ * should be normalized to three dimensions.
+ * @param {THREE.Vector3|Object} pos Position
+ * @returns {String} Position hash key
+ */
+SpatialHash.prototype.getBoundedHashKey = function (pos) {
+  if (pos.x < 0 || pos.y < 0 || pos.z < 0) {
+    throw new Error('Negative position value is not allowed');
+  } else if (pos.x > this.max || pos.y > this.max || pos.z > this.max) {
+    throw new Error('Position is greater than MAX');
+  } else if (pos.x < this.min || pos.y < this.min || pos.z < this.min) {
+    throw new Error('Position is less than MIN');
+  }
+  return this.getUnboundedHashKey(pos);
+};
+
+/**
+ * Get the list of cells that intersect the axis aligned bounding box.
+ * @param {THREE.Box3} aabb Axis aligned bounding box
+ * @returns {Array} List of intersecting cells
+ */
+SpatialHash.prototype.getCellsIntersectingAABB = function (aabb) {
+  var intersects = {}, self = this;
+  Object.keys(self.envelopes).forEach(function (cell) {
+    if (aabb.intersectsBox(self.envelopes[cell])) {
+      intersects[cell] = 0;
+    }
+  });
+  return Object.keys(intersects);
+};
+
+/**
  * Get the list of cells that intersect the camera frustum.
  * @param {THREE.Frustum} frustum Camera frustum
- * @returns {Array}
+ * @returns {Array} List of intersecting cells
  */
 SpatialHash.prototype.getCellsIntersectingFrustum = function (frustum) {
   var intersects = {}, self = this;
@@ -132,24 +155,28 @@ SpatialHash.prototype.getCellsIntersectingFrustum = function (frustum) {
 
 /**
  * Get the distance from P1 to P2.
- * @param {Array} p1 Point 1
- * @param {Array} p2 Point 2
- * @returns {Number}
+ * @param {THREE.Vector3|Object|Array} p1 Point 1
+ * @param {THREE.Vector3|Object|Array} p2 Point 2
+ * @returns {Number} Distance
  */
 SpatialHash.prototype.getDistance = function (p1, p2) {
-  p1[2] = p1.length === 2 ? 0 : p1[2];
-  p2[2] = p2.length === 2 ? 0 : p2[2];
-  return Math.sqrt(
-    Math.pow(p2[2] - p1[2], 2) +
-    Math.pow(p2[1] - p1[1], 2) +
-    Math.pow(p2[0] - p1[0], 2)
-  );
+  if (Array.isArray(p1) && Array.isArray(p2)) {
+    p1[2] = p1.length === 2 ? 0 : p1[2];
+    p2[2] = p2.length === 2 ? 0 : p2[2];
+    return Math.sqrt(
+      Math.pow(p2[2] - p1[2], 2) +
+      Math.pow(p2[1] - p1[1], 2) +
+      Math.pow(p2[0] - p1[0], 2)
+    );
+  } else {
+    return p1.distanceTo(p2);
+  }
 };
 
 /**
  * Get scene entities intersecting the camera frustum.
  * @param {THREE.Frustum} frustum Camera frustum
- * @returns {Array}
+ * @returns {Array} List of scene entities
  */
 SpatialHash.prototype.getEntitiesIntersectingFrustum = function (frustum) {
   var uuid;
@@ -167,25 +194,45 @@ SpatialHash.prototype.getEntitiesIntersectingFrustum = function (frustum) {
 };
 
 /**
- * Get scene entities intersecting the camera frustum.
- * @param {THREE.Vector2} p1 Point 1
- * @param {THREE.Vector2} p2 Point 2
- * @returns {Array}
+ * Get scene entities intersecting the screen rectangle.
+ * @param {THREE.Box2} rec Screen rectangle
+ * @returns {Array} List of scene entities
  */
-SpatialHash.prototype.getEntitiesIntersectingScreenRectangle = function (p1, p2) {
-  var intersects = [];
-  return intersects;
+SpatialHash.prototype.getEntitiesIntersectingScreenRectangle = function (rec) {
+  var p1 = new THREE.Vector3(rec.min.x, rec.min.y, 0);
+  var p2 = new THREE.Vector3(rec.max.x, rec.max.y, 1);
+  var aabb = new THREE.Box3().setFromPoints([p1, p2]);
+  var items, self = this, uuid;
+  var entities = this
+    .getAABBCellKeys(aabb)
+    .reduce(function (cells, key) {
+      if (self.cells.hasOwnProperty(key)) {
+        cells[key] = key;
+      }
+      return cells;
+    }, {});
+    //.reduce(function (intersects, cell) {
+    //  cell.forEach(function (item) {
+    //    // get cell then check whether each point intersects the rec
+    //    console.info('item', item);
+    //    // if there is an intersect, add the entity uuid to the intersects list
+    //    //uuid = id.split(',')[0];
+    //    //intersects[uuid] = intersects.hasOwnProperty(uuid) ? intersects[uuid] + 1 : 0; // count of elements belonging to the entity for testing
+    //  });
+    //  return intersects;
+    //}, {});
+  return Object.keys(entities);
 };
 
 /**
  * Get position envelope.
- * @param {Array} pos Position
+ * @param {THREE.Vector3|Object} pos Position
  * @returns {THREE.Box3}
  */
 SpatialHash.prototype.getPositionEnvelope = function (pos) {
-  var x = Math.floor(pos[0] * this.conversionFactor) * this.cellSize;
-  var y = Math.floor(pos[1] * this.conversionFactor) * this.cellSize;
-  var z = Math.floor(pos[2] * this.conversionFactor) * this.cellSize;
+  var x = Math.floor(pos.x * this.conversionFactor) * this.cellSize;
+  var y = Math.floor(pos.y * this.conversionFactor) * this.cellSize;
+  var z = Math.floor(pos.z * this.conversionFactor) * this.cellSize;
   var min = new THREE.Vector3(x, y, z);
   x += this.cellSize;
   y += this.cellSize;
@@ -197,13 +244,13 @@ SpatialHash.prototype.getPositionEnvelope = function (pos) {
 /**
  * Get position hash key. Position values from -Infinity to Infinity are valid.
  * Position values should be normalized to three dimensions.
- * @param {Object|Array} pos Position
+ * @param {THREE.Vector3|Object} pos Position
  * @returns {String} Hashed position key
  */
 SpatialHash.prototype.getUnboundedHashKey = function (pos) {
-  return (Math.floor(pos[0] * this.conversionFactor) * this.cellSize) + ':' +
-    (Math.floor(pos[1] * this.conversionFactor) * this.cellSize) + ':' +
-    (Math.floor(pos[2] * this.conversionFactor) * this.cellSize);
+  return Math.floor(pos.x * this.conversionFactor) + ':' +
+    Math.floor(pos.y * this.conversionFactor) + ':' +
+    Math.floor(pos.z * this.conversionFactor);
 };
 
 /**
@@ -236,7 +283,7 @@ SpatialHash.prototype.insert = function (id, index, aabb, metadata) {
   var max, min, position, self = this;
   // the cells intersecting the aabb
   var cells = self
-    .getCellsIntersectingAABB(aabb, this.cellSize)
+    .getAABBCells(aabb)
     .reduce(function (intersects, vertex) {
       position = self.getPositionHash(vertex);
       intersects[position] = self.getPositionEnvelope(vertex);
