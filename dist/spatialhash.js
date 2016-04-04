@@ -184,10 +184,12 @@ SpatialHash.prototype.getEntitiesIntersectingFrustum = function (frustum) {
     .getCellsIntersectingFrustum(frustum)
     // get a map of entities intersecting the cells
     .reduce(function (intersects, cell) {
-      self.cells[cell].forEach(function (id) {
-        uuid = id.split(',')[0];
-        intersects[uuid] = intersects.hasOwnProperty(uuid) ? intersects[uuid] + 1 : 0; // count of elements belonging to the entity for testing
-      });
+      if (self.cells[cell]) {
+        self.cells[cell].forEach(function (id) {
+          uuid = id.split(',')[0];
+          intersects[uuid] = intersects.hasOwnProperty(uuid) ? intersects[uuid] + 1 : 0; // count of elements belonging to the entity for testing
+        });
+      }
       return intersects;
     }, {});
   return Object.keys(entities);
