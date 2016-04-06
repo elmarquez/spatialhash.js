@@ -28,6 +28,14 @@
     "three.js": "threejs#*"
   },
   "keywords": [
-    "threejs", "3D", "search", "spatial", "hash", "index"
-  ]
+    "threejs",
+    "3D",
+    "search",
+    "spatial",
+    "hash",
+    "index"
+  ],
+  "dependencies": {
+    "parallel.js": "paralleljs#*"
+  }
 }

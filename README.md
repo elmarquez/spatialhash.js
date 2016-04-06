@@ -3,6 +3,10 @@ Spatial Hash
 
 Fast spatial indexing and search for three.js.
 
+Internally, the library stores data in a non-THREE format to make it easier to
+execute functions on workers. As a result, you will need to transform
+positional information back into THREE objects when pulling data from the index.
+
 
 Dependencies
 ------------

@@ -30,6 +30,7 @@
     "inject": false,
     "it": false,
     "jasmine": false,
+    "Parallel": false,
     "QUnit": false,
     "SpatialHash": false,
     "spyOn": false,
