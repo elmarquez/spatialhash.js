@@ -112,6 +112,12 @@ window.SpatialHash = (function () {
       Math.floor(pos.z * conversionFactor);
   }
 
+  /**
+   * Determine if the box intersects the frustum.
+   * @param {Array} planes Frustum planes
+   * @param {Object} box Box
+   * @returns {boolean}
+   */
   function intersectsBox (planes, box) {
     var d1, d2, i, p1 = {x:0,y:0,z:0}, p2 = {x:0,y:0,z:0};
     for (i = 0; i < 6; i++) {
@@ -139,14 +145,15 @@ window.SpatialHash = (function () {
    * @returns {Array}
    */
   function mergeArray (left, right) {
-    if (right) {
+    var merged = [].concat(left);
+    if (right !== null && right !== undefined) {
       if (Array.isArray(right)) {
-        left = left.concat(right);
+        merged = merged.concat(right);
       } else {
-        left.push(right);
+        merged.push(right);
       }
     }
-    return left;
+    return merged;
   }
 
   /**
@@ -156,7 +163,7 @@ window.SpatialHash = (function () {
    * @param {Object} right Right object field
    */
   function mergeFields (left, right) {
-    // { key1: [item1, item2], key2: [item1, item2 }
+    // { key1: [item1, item2], key2: [item1, item2] }
     Object.keys(right).forEach(function (key) {
       if (left.hasOwnProperty(key)) {
         right[key].forEach(function (item) {
@@ -229,7 +236,6 @@ window.SpatialHash = (function () {
     // an object occupies.
     self.objects = {};
 
-    self.positions = [];
     self.scripts = {
       EVAL: '/vendor/parallel.js/lib/eval.js',
       THREE: '/vendor/three.js/three.js'
@@ -292,18 +298,19 @@ window.SpatialHash = (function () {
    */
   Index.prototype.getCellsIntersectingFrustum = function (frustum) {
     var opt, pa, planes = [], self = this;
-    // convert frustum into a simplified object before passing it to the worker
-    frustum.planes.forEach(function (plane) {
-      planes.push({
-        constant: plane.constant,
-        normal: {
-          x: plane.normal.x + 0,
-          y: plane.normal.y + 0,
-          z: plane.normal.z + 0
-        }
-      });
-    });
     return new Promise(function (resolve, reject) {
+      // convert frustum into a simplified object before passing it to the worker
+      frustum.planes.forEach(function (plane) {
+        planes.push({
+          constant: plane.constant,
+          normal: {
+            x: plane.normal.x + 0,
+            y: plane.normal.y + 0,
+            z: plane.normal.z + 0
+          }
+        });
+      });
+      // worker options
       opt = {
         env: {
           envelopes: self.envelopes,
@@ -311,27 +318,29 @@ window.SpatialHash = (function () {
         },
         evalPath: self.scripts.EVAL
       };
-      try {
-        pa = new Parallel(Object.keys(self.envelopes), opt);
-        pa.require(self.scripts.THREE)
-          .require({fn:getDistanceToPoint, name:'getDistanceToPoint'})
-          .require({fn:getDotProduct, name:'getDotProduct'})
-          .require({fn:intersectsBox, name:'intersectsBox'})
-          .require({fn:mergeArray, name:'mergeArray'});
-        pa.map(function (cell) {
-            return intersectsBox(global.env.planes, global.env.envelopes[cell]) ? cell : null;
-          })
-          .reduce(function (cell) {
-            var result = mergeArray([], cell[0]);
-            result = mergeArray(result, cell[1]);
-            return result;
-          })
-          .then(function (data) {
+      // execute work
+      pa = new Parallel(Object.keys(self.envelopes), opt);
+      pa.require(self.scripts.THREE)
+        .require({fn:getDistanceToPoint, name:'getDistanceToPoint'})
+        .require({fn:getDotProduct, name:'getDotProduct'})
+        .require({fn:intersectsBox, name:'intersectsBox'})
+        .require({fn:mergeArray, name:'mergeArray'});
+      pa.map(function (key) {
+          return intersectsBox(global.env.planes, global.env.envelopes[key]) ? key : [];
+        })
+        .reduce(function (cell) {
+          var result = [];
+          result = mergeArray(result, cell[0]);
+          result = mergeArray(result, cell[1]);
+          return result;
+        })
+        .then(function (data, err) {
+          if (err) {
+            reject(err);
+          } else {
             resolve(data);
-          });
-      } catch (err) {
-        reject(err);
-      }
+          }
+        });
     });
   };
 
@@ -341,37 +350,37 @@ window.SpatialHash = (function () {
    * @returns {Promise} List of scene entities
    */
   Index.prototype.getEntitiesIntersectingFrustum = function (frustum) {
-    var pa, self = this;
+    var self = this;
     return new Promise(function (resolve, reject) {
-      try {
-        self.getCellsIntersectingFrustum(frustum)
-          .then(function (keys) {
+      self
+        .getCellsIntersectingFrustum(frustum)
+        .then(function (keys) {
+          if (keys.length > 0) {
             // parallel doesn't do well with data of zero length
-            if (keys.length > 0) {
-              pa = new Parallel(keys, {env: { cells: self.cells }});
-              pa.require({fn:mergeArray, name:'mergeArray'});
-              pa.map(function (key) {
-                // filter out potential errors
+            var pa = new Parallel(keys, {env: {cells: self.cells}});
+            pa.require({fn: mergeArray, name: 'mergeArray'});
+            pa.map(function (key) {
+                var result = [];
                 if (global.env.cells[key] && Array.isArray(global.env.cells[key])) {
-                  return [].concat(global.env.cells[key]);
-                } else {
-                  return [];
+                  result = [].concat(global.env.cells[key]);
                 }
+                return result;
               })
-                .reduce(function (objs) {
-                  var result = mergeArray([], objs[0]);
-                  return mergeArray(result, objs[1]);
-                })
-                .then(function (objs) {
-                  resolve(objs);
-                });
-            } else {
-              resolve([]);
-            }
-          });
-      } catch (err) {
-        reject(err);
-      }
+              .reduce(function (objs) {
+                var result = [];
+                result = mergeArray(result, objs[0]);
+                result = mergeArray(result, objs[1]);
+                return result;
+              })
+              .then(function (data, err) {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(data);
+                }
+              });
+          }
+        });
     });
   };
 
@@ -509,51 +518,51 @@ window.SpatialHash = (function () {
         .require({fn:getPositionEnvelope, name:'getPositionEnvelope'})
         .require({fn:getUnboundedPositionHashKey, name:'getPositionHash'})
         .require({fn:mergeFields, name:'mergeFields'});
-      try {
-        p.map(function (obj) {
-          var cells, position, record = {cells: {}, envelopes:{}, objects:{}};
-          // the cells intersecting the aabb
-          cells = getAABBCells(obj.aabb, global.env.cellSize)
-            .reduce(function (intersects, vertex) {
-              position = getPositionHash(vertex, global.env.conversionFactor);
-              intersects[position] = getPositionEnvelope(vertex, global.env.cellSize, global.env.conversionFactor);
-              return intersects;
-            }, {});
-          // add index entries
-          Object.keys(cells).forEach(function (key) {
-            // cell bounding envelopes
-            record.envelopes[key] = cells[key];
-            // cell id to object id map
-            if (!record.cells.hasOwnProperty(key)) {
-              record.cells[key] = [];
-            }
-            record.cells[key].push(obj.id);
-            // object id to cell id map
-            if (!record.objects.hasOwnProperty(obj.id)) {
-              record.objects[obj.id] = [];
-            }
-            record.objects[obj.id].push(key);
-          });
-          return record;
-        })
-        .reduce(function (records) {
-            // TODO count each type of entity
-          mergeFields(records[0].cells, records[1].cells);
-          Object.keys(records[1].envelopes).forEach(function (key) {
-            records[0].envelopes[key] = records[1].envelopes[key];
-          });
-          mergeFields(records[0].objects, records[1].objects);
-          return records[0];
-        })
-        .then(function (data) {
+      p.map(function (obj) {
+        var cells, position, record = {cells: {}, envelopes:{}, objects:{}};
+        // the cells intersecting the aabb
+        cells = getAABBCells(obj.aabb, global.env.cellSize)
+          .reduce(function (intersects, vertex) {
+            position = getPositionHash(vertex, global.env.conversionFactor);
+            intersects[position] = getPositionEnvelope(vertex, global.env.cellSize, global.env.conversionFactor);
+            return intersects;
+          }, {});
+        // add index entries
+        Object.keys(cells).forEach(function (key) {
+          // cell bounding envelopes
+          record.envelopes[key] = cells[key];
+          // cell id to object id map
+          if (!record.cells.hasOwnProperty(key)) {
+            record.cells[key] = [];
+          }
+          record.cells[key].push(obj.id);
+          // object id to cell id map
+          if (!record.objects.hasOwnProperty(obj.id)) {
+            record.objects[obj.id] = [];
+          }
+          record.objects[obj.id].push(key);
+        });
+        return record;
+      })
+      .reduce(function (records) {
+        // TODO count each type of entity
+        mergeFields(records[0].cells, records[1].cells);
+        Object.keys(records[1].envelopes).forEach(function (key) {
+          records[0].envelopes[key] = records[1].envelopes[key];
+        });
+        mergeFields(records[0].objects, records[1].objects);
+        return records[0];
+      })
+      .then(function (data, err) {
+        if (err) {
+          reject(err);
+        } else {
           self.cells = data.cells;
           self.envelopes = data.envelopes;
           self.objects = data.objects;
           resolve(count);
-        });
-      } catch (err) {
-        reject(err);
-      }
+        }
+      });
     });
   };
 
