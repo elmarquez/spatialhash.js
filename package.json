@@ -1,6 +1,6 @@
 {
   "name": "spatialhash",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Fast 2D/3D indexing and search.",
   "main": "index.js",
   "directories": {
