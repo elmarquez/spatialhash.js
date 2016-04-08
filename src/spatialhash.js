@@ -458,11 +458,10 @@ window.SpatialHash = (function () {
   Index.prototype.insert = function (id, index, aabb, metadata) {
     var position, self = this;
     // the cells intersecting the aabb
-    var cells = self
-      .getAABBCells(aabb)
+    var cells = getAABBCells(aabb, self.cellSize)
       .reduce(function (intersects, vertex) {
         position = self.getPositionHash(vertex);
-        intersects[position] = self.getPositionEnvelope(vertex);
+        intersects[position] = getPositionEnvelope(vertex, self.cellSize, self.conversionFactor);
         return intersects;
       }, {});
     // add index entries
