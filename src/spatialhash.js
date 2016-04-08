@@ -297,7 +297,7 @@ window.SpatialHash = (function () {
    * @returns {Promise} List of intersecting cells
    */
   Index.prototype.getCellsIntersectingFrustum = function (frustum) {
-    var opt, pa, planes = [], self = this;
+    var opt, pa, planes = [], self = this, start = new Date().getTime();
     return new Promise(function (resolve, reject) {
       // convert frustum into a simplified object before passing it to the worker
       frustum.planes.forEach(function (plane) {
@@ -335,6 +335,7 @@ window.SpatialHash = (function () {
           return result;
         })
         .then(function (data, err) {
+          console.info('getCellsIntersectingFrustum', new Date().getTime() - start);
           if (err) {
             reject(err);
           } else {
@@ -350,7 +351,7 @@ window.SpatialHash = (function () {
    * @returns {Promise} List of scene entities
    */
   Index.prototype.getEntitiesIntersectingFrustum = function (frustum) {
-    var self = this;
+    var self = this, start = new Date().getTime();
     return new Promise(function (resolve, reject) {
       self
         .getCellsIntersectingFrustum(frustum)
@@ -373,6 +374,7 @@ window.SpatialHash = (function () {
                 return result;
               })
               .then(function (data, err) {
+                console.info('getEntitiesIntersectingFrustum', new Date().getTime() - start);
                 if (err) {
                   reject(err);
                 } else {
