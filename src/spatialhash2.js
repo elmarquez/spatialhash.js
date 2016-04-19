@@ -1,5 +1,5 @@
 /* globals getAABBCells, getPositionEnvelope, getPositionHash */
-window.SpatialHash = (function () {
+window.SpatialHash2 = (function () {
   'use strict';
 
   //---------------------------------------------------------------------------
@@ -98,18 +98,6 @@ window.SpatialHash = (function () {
     z += cellSize;
     var max = {x:x, y:y, z:z};
     return {min:min, max:max};
-  }
-
-  /**
-   *
-   * @param {Object} pos Position
-   * @param {Number} conversionFactor Conversion factor
-   * @returns {String}
-   */
-  function getUnboundedPositionHashKey (pos, conversionFactor) {
-    return Math.floor(pos.x * conversionFactor) + ':' +
-      Math.floor(pos.y * conversionFactor) + ':' +
-      Math.floor(pos.z * conversionFactor);
   }
 
   /**
@@ -213,42 +201,34 @@ window.SpatialHash = (function () {
     config = config || {};
     var self = this;
 
-    self.INDEXING_STRATEGY = {
-      BOUNDED: 'getBoundedHashKey',
-      UNBOUNDED: 'getUnboundedHashKey'
-    };
-    self.MAX_WORKERS = 16;
-
     // cell to object map. cells are identified by a position hash key. each cell record
     // contains an array with a list of object IDs
     self.cells = {};
-    self.cellSize = 10;
+    self.cellSize = 2; // FIXME power of two or value?
     self.conversionFactor = -1;
 
     // cell to cell bounding envelope map. cells are identifed by a position hash key.
     // the bounding envelope identifies the min, max positions defining the cell.
     self.envelopes = {};
-    self.indexingStrategy = self.INDEXING_STRATEGY.UNBOUNDED;
-    self.max = 1000;
-    self.min = 0;
 
     // object ID to cell hash key map. the map allows us to determine the set of cells that
     // an object occupies.
     self.objects = {};
-
     self.scripts = {
       EVAL: '/vendor/parallel.js/lib/eval.js',
       THREE: '/vendor/three.js/three.js'
     };
+    self.tree = {};
 
     Object.keys(config).forEach(function (key) {
       self[key] = config[key];
     });
 
     self.conversionFactor = 1 / self.cellSize;
-    self.getPositionHash = self[self.indexingStrategy];
-    self.width = (self.max - self.min) / self.cellSize;
+    self.getPositionHash = self.getHashKey;
   }
+
+  Index.prototype.add = function () {};
 
   /**
    * Clear the index.
@@ -259,24 +239,6 @@ window.SpatialHash = (function () {
   };
 
   Index.prototype.getAABBCells = getAABBCells;
-
-  /**
-   * Get bounded hash key. Position values must be greater than or equal to zero,
-   * greater than or equal to MIN, less than or equal to MAX. Position values
-   * should be normalized to three dimensions.
-   * @param {THREE.Vector3|Object} pos Position
-   * @returns {String} Position hash key
-   */
-  Index.prototype.getBoundedHashKey = function (pos) {
-    if (pos.x < 0 || pos.y < 0 || pos.z < 0) {
-      throw new Error('Negative position value is not allowed');
-    } else if (pos.x > this.max || pos.y > this.max || pos.z > this.max) {
-      throw new Error('Position is greater than MAX');
-    } else if (pos.x < this.min || pos.y < this.min || pos.z < this.min) {
-      throw new Error('Position is less than MIN');
-    }
-    return this.getUnboundedHashKey(pos);
-  };
 
   /**
    * Get the list of cells that intersect the axis aligned bounding box.
@@ -426,7 +388,7 @@ window.SpatialHash = (function () {
    * @param {Number} conversionFactor Conversion factor
    * @returns {String} Hashed position key
    */
-  Index.prototype.getUnboundedHashKey = function (pos, conversionFactor) {
+  Index.prototype.getHashKey = function (pos, conversionFactor) {
     return Math.floor(pos.x * conversionFactor) + ':' +
       Math.floor(pos.y * conversionFactor) + ':' +
       Math.floor(pos.z * conversionFactor);
@@ -519,7 +481,7 @@ window.SpatialHash = (function () {
           .require(self.scripts.THREE)
           .require({fn:getAABBCells, name:'getAABBCells'})
           .require({fn:getPositionEnvelope, name:'getPositionEnvelope'})
-          .require({fn:getUnboundedPositionHashKey, name:'getPositionHash'})
+          .require({fn:getPositionHash, name:'getPositionHash'})
           .require({fn:mergeFields, name:'mergeFields'});
         p.map(function (obj) {
           var cells, position, record = {cells: {}, envelopes:{}, objects:{}};

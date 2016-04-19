@@ -258,6 +258,8 @@ window.SpatialHash = (function () {
     this.objects = {};
   };
 
+  Index.prototype.getAABBCells = getAABBCells;
+
   /**
    * Get bounded hash key. Position values must be greater than or equal to zero,
    * greater than or equal to MIN, less than or equal to MAX. Position values
@@ -498,72 +500,72 @@ window.SpatialHash = (function () {
     return new Promise(function (resolve, reject) {
       if (objs.length === 0) {
         resolve(count);
-      }
-      // check for null bounding boxes
-      objs.forEach(function (obj) {
-        if (!obj.aabb || !obj.aabb.max || !obj.aabb.min) {
-          reject('Missing aabb', obj);
-        }
-      });
-      opts = {
-        env: {
-          cellSize: self.cellSize,
-          conversionFactor: self.conversionFactor
-        },
-        evalPath: self.scripts.EVAL
-        //, maxWorkers: 8
-      };
-      p = new Parallel(objs, opts)
-        .require(self.scripts.THREE)
-        .require({fn:getAABBCells, name:'getAABBCells'})
-        .require({fn:getPositionEnvelope, name:'getPositionEnvelope'})
-        .require({fn:getUnboundedPositionHashKey, name:'getPositionHash'})
-        .require({fn:mergeFields, name:'mergeFields'});
-      p.map(function (obj) {
-        var cells, position, record = {cells: {}, envelopes:{}, objects:{}};
-        // the cells intersecting the aabb
-        cells = getAABBCells(obj.aabb, global.env.cellSize)
-          .reduce(function (intersects, vertex) {
-            position = getPositionHash(vertex, global.env.conversionFactor);
-            intersects[position] = getPositionEnvelope(vertex, global.env.cellSize, global.env.conversionFactor);
-            return intersects;
-          }, {});
-        // add index entries
-        Object.keys(cells).forEach(function (key) {
-          // cell bounding envelopes
-          record.envelopes[key] = cells[key];
-          // cell id to object id map
-          if (!record.cells.hasOwnProperty(key)) {
-            record.cells[key] = [];
+      } else {
+        // check for null bounding boxes
+        objs.forEach(function (obj) {
+          if (!obj.aabb || !obj.aabb.max || !obj.aabb.min) {
+            reject('Missing aabb', obj);
           }
-          record.cells[key].push(obj.id);
-          // object id to cell id map
-          if (!record.objects.hasOwnProperty(obj.id)) {
-            record.objects[obj.id] = [];
-          }
-          record.objects[obj.id].push(key);
         });
-        return record;
-      })
-      .reduce(function (records) {
-        // TODO count each type of entity
-        mergeFields(records[0].cells, records[1].cells);
-        Object.keys(records[1].envelopes).forEach(function (key) {
-          records[0].envelopes[key] = records[1].envelopes[key];
-        });
-        mergeFields(records[0].objects, records[1].objects);
-        return records[0];
-      })
-      .then(function (data, err) {
-        if (err) {
-          reject(err);
-        } else {
-          self.cells = data.cells;
-          self.envelopes = data.envelopes;
-          self.objects = data.objects;
-          resolve(count);
-        }
-      });
+        opts = {
+          env: {
+            cellSize: self.cellSize,
+            conversionFactor: self.conversionFactor
+          },
+          evalPath: self.scripts.EVAL
+          //, maxWorkers: 8
+        };
+        p = new Parallel(objs, opts)
+          .require(self.scripts.THREE)
+          .require({fn:getAABBCells, name:'getAABBCells'})
+          .require({fn:getPositionEnvelope, name:'getPositionEnvelope'})
+          .require({fn:getUnboundedPositionHashKey, name:'getPositionHash'})
+          .require({fn:mergeFields, name:'mergeFields'});
+        p.map(function (obj) {
+          var cells, position, record = {cells: {}, envelopes:{}, objects:{}};
+          // the cells intersecting the aabb
+          cells = getAABBCells(obj.aabb, global.env.cellSize)
+            .reduce(function (intersects, vertex) {
+              position = getPositionHash(vertex, global.env.conversionFactor);
+              intersects[position] = getPositionEnvelope(vertex, global.env.cellSize, global.env.conversionFactor);
+              return intersects;
+            }, {});
+          // add index entries
+          Object.keys(cells).forEach(function (key) {
+            // cell bounding envelopes
+            record.envelopes[key] = cells[key];
+            // cell id to object id map
+            if (!record.cells.hasOwnProperty(key)) {
+              record.cells[key] = [];
+            }
+            record.cells[key].push(obj.id);
+            // object id to cell id map
+            if (!record.objects.hasOwnProperty(obj.id)) {
+              record.objects[obj.id] = [];
+            }
+            record.objects[obj.id].push(key);
+          });
+          return record;
+        })
+          .reduce(function (records) {
+            // TODO count each type of entity
+            mergeFields(records[0].cells, records[1].cells);
+            Object.keys(records[1].envelopes).forEach(function (key) {
+              records[0].envelopes[key] = records[1].envelopes[key];
+            });
+            mergeFields(records[0].objects, records[1].objects);
+            return records[0];
+          })
+          .then(function (data, err) {
+            if (err) {
+              reject(err);
+            } else {
+              self.cells = data.cells;
+              self.envelopes = data.envelopes;
+              self.objects = data.objects;
+              resolve(count);
+            }
+          });}
     });
   };
 
