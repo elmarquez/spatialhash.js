@@ -7,6 +7,11 @@ Internally, the library stores data in a non-THREE format to make it easier to
 execute functions on workers. As a result, you will need to transform
 positional information back into THREE objects when pulling data from the index.
 
+Add spatialhash as a dependency to your project:
+
+    npm install -S @elmarquez/spatialhash
+
+
 
 Dependencies
 ------------
@@ -19,17 +24,13 @@ Install all development dependencies:
 Building a Distribution
 -----------------------
 
-Show build commands:
-
-    grunt
-
 Build the library:
 
-    grunt compile
+    npm run build
 
 Test the distribution:
 
-    grunt test
+    npm run test
 
 
 Discussion
