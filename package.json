@@ -7,6 +7,8 @@
     "src": "src",
     "test": "test"
   },
+  "private": false,
+  "type": "module",
   "scripts": {
     "build": "./node_modules/.bin/webpack",
     "clean": "rm -fr dist/*; rm -fr ",
